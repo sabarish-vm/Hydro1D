@@ -66,6 +66,9 @@ check_configuration_option(riemannsolver_type "RIEMANNSOLVER_TYPE_HLLC")
 check_configuration_option(dimensionality "DIMENSIONALITY_3D")
 check_configuration_option(hydro_order 2)
 check_configuration_option(status_update_interval 10.)
+check_configuration_option(heat_conduction "HEAT_CONDUCTION_OFF")
+check_configuration_option(thermal_conductivity 1.0e-6)
+check_configuration_option(heat_conduction_timestep_factor 0.1)
 
 configure_file(${PROJECT_SOURCE_DIR}/Parameters.hpp.in
                ${PROJECT_BINARY_DIR}/Parameters.hpp @only)

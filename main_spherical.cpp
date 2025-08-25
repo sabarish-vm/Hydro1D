@@ -38,6 +38,7 @@
 #include "Spherical.hpp"         // spherical source terms
 #include "Timer.hpp"             // program timers
 #include "Units.hpp"             // unit information
+#include "HeatConduction.hpp"    // heat conduction physics
 
 // standard libraries
 #include <cfloat>
@@ -440,6 +441,9 @@ int main(int argc, char **argv) {
   // Sod.hpp (if configured with IC_SOD).
   initialize(cells, ncell);
 
+  // initialize heat conduction variables
+  initialize_heat_conduction(cells, ncell);
+
   // Courant factor for the CFL time step criterion
   // we use a very conservative value
   const double courant_factor = COURANT_FACTOR;
@@ -455,6 +459,9 @@ int main(int argc, char **argv) {
   // we use a global time step, which is the minimum time step among all cells
   uint_fast64_t min_integer_dt = snaptime;
   double Etot = 0.;
+  
+  // compute heat conduction timestep constraint
+  const double heat_conduction_dt = compute_heat_conduction_timestep(cells, ncell);
 #pragma omp parallel for reduction(min : min_integer_dt) reduction(+ : Etot)
   // convert primitive variables to conserved variables
   for (uint_fast32_t i = 1; i < ncell + 1; ++i) {
@@ -473,7 +480,9 @@ int main(int argc, char **argv) {
     // time step criterion
     const double cs =
         std::sqrt(GAMMA * cells[i]._P / cells[i]._rho) + std::abs(cells[i]._u);
-    const double dt = courant_factor * cells[i]._V / cs;
+    const double hydro_dt = courant_factor * cells[i]._V / cs;
+    const double dt = std::min(hydro_dt, heat_conduction_dt);
+    
     const uint_fast64_t integer_dt =
         (dt < maxtime) ? (dt / maxtime) * integer_maxtime : integer_maxtime;
     min_integer_dt = std::min(min_integer_dt, integer_dt);
@@ -700,6 +709,9 @@ int main(int argc, char **argv) {
     // handled by Boundaries.hpp (and Bondi.hpp for BOUNDARIES_BONDI)
     boundary_conditions_gradients();
 
+    // compute heat conduction fluxes
+    compute_heat_conduction_fluxes(cells, ncell);
+
 #if HYDRO_ORDER == 1
 // reset all gradients to zero to disable the second order scheme
 #pragma omp parallel for
@@ -812,6 +824,9 @@ int main(int argc, char **argv) {
     // add the spherical source term
     // handled by Spherical.hpp
     add_spherical_source_term();
+
+    // apply heat conduction source terms
+    apply_heat_conduction_source_terms(cells, ncell, current_integer_dt * time_conversion_factor);
 
     // do the second gravity kick
     // handled by Potential.hpp

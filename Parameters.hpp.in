@@ -121,4 +121,13 @@
 /*! @brief Time in between successive status outputs (in runtime s). */
 #define STATUS_UPDATE_INTERVAL @status_update_interval@
 
+/*! @brief Heat conduction mode (set by configuration). */
+#define HEAT_CONDUCTION @heat_conduction@
+
+/*! @brief Thermal conductivity coefficient (set by configuration). */
+#define THERMAL_CONDUCTIVITY (@thermal_conductivity@)
+
+/*! @brief Heat conduction timestep factor (set by configuration). */
+#define HEAT_CONDUCTION_TIMESTEP_FACTOR (@heat_conduction_timestep_factor@)
+
 #endif // PARAMETERS_HPP

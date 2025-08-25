@@ -97,4 +97,8 @@
 /*! @brief 3D spherically symmetric solver. */
 #define DIMENSIONALITY_3D 2
 
+// Heat conduction options
+#define HEAT_CONDUCTION_OFF 0
+#define HEAT_CONDUCTION_ON 1
+
 #endif // OPTIONNAMES_HPP

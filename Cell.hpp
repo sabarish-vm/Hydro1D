@@ -90,6 +90,12 @@ public:
   /*! @brief Neutral fraction. */
   double _nfac;
 
+  // heat conduction quantities
+  /*! @brief Heat flux from left neighbor (for heat conduction). */
+  double _heat_flux_left;
+  /*! @brief Heat flux to right neighbor (for heat conduction). */
+  double _heat_flux_right;
+
   // time step
 
   /*! @brief Integer time step (in integer time units). */
