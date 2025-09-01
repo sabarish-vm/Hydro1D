@@ -3,9 +3,9 @@
 import get_cmake_command
 
 heat_conduction_options = {
-    "rmin_in_au": 10.0,
-    "rmax_in_au": 100.0,
-    "ncell": 2700,
+    "rmin_in_au": 5.0,
+    "rmax_in_au": 3000.0,
+    "ncell": 10000,
     "gamma": 1.001,
     "maxtime_in_yr": 40.0,
     "number_of_snaps": 2000,
@@ -18,7 +18,7 @@ heat_conduction_options = {
     "mass_point_mass_in_msol": 18.0,
     "bondi_density_in_si": 1.0e-16,
     "bondi_pressure_contrast": 32.0,
-    "initial_ionisation_radius_in_au": 30.0,
+    "initial_ionisation_radius_in_au": 100000.0,
     "unit_mass_in_si": 2.479e31,
     "unit_length_in_si": 1.2e13,
     "ionisation_mode": "IONISATION_MODE_CONSTANT",
@@ -26,9 +26,6 @@ heat_conduction_options = {
     "ionisation_transition_width_in_au": 5.0,
     "courant_factor": 0.05,
     "riemannsolver_type": "RIEMANNSOLVER_TYPE_HLLC",
-    "dimensionality": "DIMENSIONALITY_3D",
-    "hydro_order": 2,
-    "status_update_interval": 10.0,
     # Heat conduction parameters
     "heat_conduction": "HEAT_CONDUCTION_ON",
     "thermal_conductivity": 1.0e-6,

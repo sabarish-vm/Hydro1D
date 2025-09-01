@@ -13,6 +13,6 @@ cd $folder
 echo $cmake_command
 eval $cmake_command
 make -j $nthread
-OMP_NUM_THREADS=$nthread OMP_PROC_BIND=True ./HydroCodeSpherical1D 2>&1 \
-  | tee bondi_conduction.log
+OMP_NUM_THREADS=$nthread OMP_PROC_BIND=True ./HydroCodeSpherical1D 2>&1 |
+    tee bondi_conduction.log
 cd ..
