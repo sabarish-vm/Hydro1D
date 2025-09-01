@@ -57,6 +57,9 @@ configuration_options = {
     "dimensionality": "DIMENSIONALITY_3D",
     "hydro_order": 2,
     "status_update_interval": 10.0,
+    "heat_conduction": "HEAT_CONDUCTION_OFF",
+    "thermal_conductivity": 1.0e-6,
+    "heat_conduction_timestep_factor": 0.1,
 }
 
 ##
