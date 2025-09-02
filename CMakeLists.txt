@@ -16,8 +16,8 @@
 # along with HydroCodeSpherical1D. If not, see <http://www.gnu.org/licenses/>.
 ################################################################################
 
-cmake_minimum_required(VERSION 2.8)
-
+cmake_minimum_required(VERSION 3.5)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(HydroCodeSpherical1D)
 
 set(SOURCES
