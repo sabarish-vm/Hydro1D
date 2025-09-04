@@ -34,6 +34,7 @@
   _Pragma("omp parallel for") for (uint_fast32_t i = 1; i < ncell + 1; ++i) {  \
     const double m = cells[i]._V * cells[i]._rho;                              \
     cells[i]._p += 0.5 * cells[i]._dt * cells[i]._a * m;                       \
+    cells[i]._E += 0.5 * cells[i]._dt * cells[i]._a * m * cells[i]._u;         \
     /* we do not update the total energy, as we only run gravity simulations   \
        with an isothermal eos, in which case the total energy is ignored by    \
        the hydro scheme */                                                     \

@@ -30,6 +30,7 @@
 #include "Cell.hpp"              // Cell class
 #include "EOS.hpp"               // for non Bondi equations of state
 #include "HLLCRiemannSolver.hpp" // fast HLLC Riemann solver
+#include "HeatConduction.hpp"    // heat conduction physics
 #include "IC.hpp"                // general initial condition interface
 #include "LogFile.hpp"           // log file output
 #include "Potential.hpp"         // external gravity
@@ -38,7 +39,6 @@
 #include "Spherical.hpp"         // spherical source terms
 #include "Timer.hpp"             // program timers
 #include "Units.hpp"             // unit information
-#include "HeatConduction.hpp"    // heat conduction physics
 
 // standard libraries
 #include <cfloat>
@@ -441,9 +441,6 @@ int main(int argc, char **argv) {
   // Sod.hpp (if configured with IC_SOD).
   initialize(cells, ncell);
 
-  // initialize heat conduction variables
-  initialize_heat_conduction(cells, ncell);
-
   // Courant factor for the CFL time step criterion
   // we use a very conservative value
   const double courant_factor = COURANT_FACTOR;
@@ -459,9 +456,10 @@ int main(int argc, char **argv) {
   // we use a global time step, which is the minimum time step among all cells
   uint_fast64_t min_integer_dt = snaptime;
   double Etot = 0.;
-  
+
   // compute heat conduction timestep constraint
-  const double heat_conduction_dt = compute_heat_conduction_timestep(cells, ncell);
+  // const double heat_conduction_dt = compute_heat_conduction_timestep(cells,
+  // ncell);
 #pragma omp parallel for reduction(min : min_integer_dt) reduction(+ : Etot)
   // convert primitive variables to conserved variables
   for (uint_fast32_t i = 1; i < ncell + 1; ++i) {
@@ -481,8 +479,8 @@ int main(int argc, char **argv) {
     const double cs =
         std::sqrt(GAMMA * cells[i]._P / cells[i]._rho) + std::abs(cells[i]._u);
     const double hydro_dt = courant_factor * cells[i]._V / cs;
-    const double dt = std::min(hydro_dt, heat_conduction_dt);
-    
+    const double dt = std::min(hydro_dt, 1e10);
+
     const uint_fast64_t integer_dt =
         (dt < maxtime) ? (dt / maxtime) * integer_maxtime : integer_maxtime;
     min_integer_dt = std::min(min_integer_dt, integer_dt);
@@ -709,9 +707,6 @@ int main(int argc, char **argv) {
     // handled by Boundaries.hpp (and Bondi.hpp for BOUNDARIES_BONDI)
     boundary_conditions_gradients();
 
-    // compute heat conduction fluxes
-    compute_heat_conduction_fluxes(cells, ncell);
-
 #if HYDRO_ORDER == 1
 // reset all gradients to zero to disable the second order scheme
 #pragma omp parallel for
@@ -788,11 +783,16 @@ int main(int argc, char **argv) {
         PR_dash = PR;
       }
 
+      double rhoFC = 0.5 * (rhoL + rhoR);
+      double tempL = cells[i - 1]._P / (cells[i - 1]._rho * BOLTZMANN_K_IN_SI);
+      double tempR = cells[i]._P / (cells[i]._rho * BOLTZMANN_K_IN_SI);
+      double dTdx = (tempR - tempL) / dmin;
       // solve the Riemann problem at the interface between the two cells
       double mflux, pflux, Eflux;
       solver.solve_for_flux(rhoL_dash, uL_dash, PL_dash, rhoR_dash, uR_dash,
                             PR_dash, mflux, pflux, Eflux);
-
+      // Change fluxes to account for thermal conduction
+      Eflux -= THERMAL_CONDUCTIVITY * dTdx * rhoFC;
       // set the left and right fluxes
       // (unless the corresponding cell is a ghost)
       if (i < ncell + 1) {
@@ -824,9 +824,6 @@ int main(int argc, char **argv) {
     // add the spherical source term
     // handled by Spherical.hpp
     add_spherical_source_term();
-
-    // apply heat conduction source terms
-    apply_heat_conduction_source_terms(cells, ncell, current_integer_dt * time_conversion_factor);
 
     // do the second gravity kick
     // handled by Potential.hpp

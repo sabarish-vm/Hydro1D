@@ -31,75 +31,7 @@
 
 #if HEAT_CONDUCTION == HEAT_CONDUCTION_ON
 
-/**
- * @brief Compute heat conduction fluxes between cells.
- * 
- * This computes the heat flux at cell interfaces using Fourier's law:
- * q = -κ ∇T, where κ is the thermal conductivity.
- * 
- * @param cells Cell array
- * @param ncell Number of cells
- */
-#define compute_heat_conduction_fluxes(cells, ncell) \
-  _Pragma("omp parallel for") \
-  for (uint_fast32_t i = 1; i < ncell + 1; ++i) { \
-    /* Compute temperatures from pressure and density */ \
-    const double T_left = cells[i-1]._P / (cells[i-1]._rho * BOLTZMANN_K_IN_SI); \
-    const double T_right = cells[i+1]._P / (cells[i+1]._rho * BOLTZMANN_K_IN_SI); \
-    const double T_center = cells[i]._P / (cells[i]._rho * BOLTZMANN_K_IN_SI); \
-    \
-    /* Compute temperature gradients */ \
-    const double dr_left = cells[i]._midpoint - cells[i-1]._midpoint; \
-    const double dr_right = cells[i+1]._midpoint - cells[i]._midpoint; \
-    \
-    const double dT_dr_left = (T_center - T_left) / dr_left; \
-    const double dT_dr_right = (T_right - T_center) / dr_right; \
-    \
-    /* Heat flux: q = -κ ∇T (spherical geometry: area = 4πr²) */ \
-    const double area_left = 4. * M_PI * cells[i-1]._midpoint * cells[i-1]._midpoint; \
-    const double area_right = 4. * M_PI * cells[i+1]._midpoint * cells[i+1]._midpoint; \
-    \
-    const double heat_flux_left = -THERMAL_CONDUCTIVITY * dT_dr_left * area_left; \
-    const double heat_flux_right = -THERMAL_CONDUCTIVITY * dT_dr_right * area_right; \
-    \
-    /* Store heat fluxes for later use */ \
-    cells[i]._heat_flux_left = heat_flux_left; \
-    cells[i]._heat_flux_right = heat_flux_right; \
-  }
-
-/**
- * @brief Apply heat conduction source terms to energy equation.
- * 
- * This updates the total energy due to heat conduction:
- * dE/dt = ∇·q = (q_right - q_left) / V
- * 
- * @param cells Cell array
- * @param ncell Number of cells
- * @param dt Current timestep
- */
-#define apply_heat_conduction_source_terms(cells, ncell, dt) \
-  _Pragma("omp parallel for") \
-  for (uint_fast32_t i = 1; i < ncell + 1; ++i) { \
-    /* Energy change due to heat conduction */ \
-    const double heat_source = (cells[i]._heat_flux_right - cells[i]._heat_flux_left) / \
-                              cells[i]._V; \
-    \
-    /* Update total energy */ \
-    cells[i]._E += dt * heat_source; \
-  }
-
-/**
- * @brief Compute heat conduction timestep constraint.
- * 
- * Heat conduction imposes a stability constraint:
- * dt < 0.5 * dr² / α, where α = κ / (ρ * c_v) is thermal diffusivity
- * 
- * @param cells Cell array
- * @param ncell Number of cells
- * @return Minimum timestep due to heat conduction
- */
 #define compute_heat_conduction_timestep(cells, ncell) \
-  double min_heat_dt = 1e10; \
   _Pragma("omp parallel for reduction(min:min_heat_dt)") \
   for (uint_fast32_t i = 1; i < ncell + 1; ++i) { \
     const double T = cells[i]._P / (cells[i]._rho * BOLTZMANN_K_IN_SI); \
@@ -112,7 +44,7 @@
     const double heat_dt = HEAT_CONDUCTION_TIMESTEP_FACTOR * \
                           cells[i]._V * cells[i]._V / thermal_diffusivity; \
     \
-    min_heat_dt = std::min(min_heat_dt, heat_dt); \
+    min_heat_dt = std::min(1e10, heat_dt); \
   } \
   min_heat_dt
 
