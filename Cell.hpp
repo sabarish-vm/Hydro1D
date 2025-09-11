@@ -43,6 +43,7 @@ public:
   /*! @brief Pressure (in internal units of M L^-1 T^-2). */
   double _P;
 
+
   /*! @brief Density gradient (in internal units of M L^-4). */
   double _grad_rho;
   /*! @brief Velocity gradient (in internal units of T^-1). */
@@ -84,17 +85,6 @@ public:
 
   /*! @brief Gravitational acceleration (in internal units of L T^-2). */
   double _a;
-
-  // ionisation quantities
-
-  /*! @brief Neutral fraction. */
-  double _nfac;
-
-  // heat conduction quantities
-  /*! @brief Heat flux from left neighbor (for heat conduction). */
-  double _heat_flux_left;
-  /*! @brief Heat flux to right neighbor (for heat conduction). */
-  double _heat_flux_right;
 
   // time step
 
@@ -146,7 +136,6 @@ public:
     std::cerr << "_lowlim: " << _lowlim << std::endl;
     std::cerr << "_uplim: " << _uplim << std::endl;
     std::cerr << "_a: " << _a << std::endl;
-    std::cerr << "_nfac: " << _nfac << std::endl;
     std::cerr << "_integer_dt: " << _integer_dt << std::endl;
     std::cerr << "_dt: " << _dt << std::endl;
     std::cerr << "_index: " << _index << std::endl;
@@ -154,7 +143,6 @@ public:
     std::cerr << "_last_rho: " << _last_rho << std::endl;
     std::cerr << "_last_u: " << _last_u << std::endl;
     std::cerr << "_last_P: " << _last_P << std::endl;
-    std::cerr << "_last_nfac: " << _last_nfac << std::endl;
   };
 };
 

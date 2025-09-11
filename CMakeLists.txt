@@ -17,6 +17,7 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.5)
+set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(HydroCodeSpherical1D)
 
@@ -30,11 +31,11 @@ set(SOURCES
 # if not, the default value is set and a warning is printed
 # we also print the actual value that is used
 macro(check_configuration_option option_name option_default_value)
-  if(NOT DEFINED ${option_name})
-    message(STATUS "Using default ${option_name}")
-    set(${option_name} ${option_default_value})
-  endif(NOT DEFINED ${option_name})
-  message(STATUS "${option_name}: ${${option_name}}")
+    if(NOT DEFINED ${option_name})
+        message(STATUS "Using default ${option_name}")
+        set(${option_name} ${option_default_value})
+    endif(NOT DEFINED ${option_name})
+    message(STATUS "${option_name}: ${${option_name}}")
 endmacro(check_configuration_option)
 
 # Configurable parameters
@@ -42,7 +43,7 @@ endmacro(check_configuration_option)
 check_configuration_option(rmin_in_au 10.)
 check_configuration_option(rmax_in_au 100.)
 check_configuration_option(ncell 2700)
-check_configuration_option(gamma 1.001)
+check_configuration_option(gamma 1.5)
 check_configuration_option(maxtime_in_yr 80.)
 check_configuration_option(number_of_snaps 4000)
 check_configuration_option(ic "IC_FILE")
@@ -58,9 +59,6 @@ check_configuration_option(ic_file_name "ic.dat")
 check_configuration_option(initial_ionisation_radius_in_au 30.)
 check_configuration_option(unit_mass_in_si 2.479e31)
 check_configuration_option(unit_length_in_si 1.2e13)
-check_configuration_option(ionisation_mode "IONISATION_MODE_SELF_CONSISTENT")
-check_configuration_option(ionisation_transition "IONISATION_TRANSITION_SMOOTH")
-check_configuration_option(ionisation_transition_width_in_au 5.)
 check_configuration_option(courant_factor 0.05)
 check_configuration_option(riemannsolver_type "RIEMANNSOLVER_TYPE_HLLC")
 check_configuration_option(dimensionality "DIMENSIONALITY_3D")
@@ -77,9 +75,9 @@ include_directories(${PROJECT_BINARY_DIR})
 
 find_package(OpenMP)
 if(OPENMP_FOUND)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 else(OPENMP_FOUND)
-  message(ERROR "OpenMP not found!")
+    message(ERROR "OpenMP not found!")
 endif(OPENMP_FOUND)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")

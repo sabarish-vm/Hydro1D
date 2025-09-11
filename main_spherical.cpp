@@ -39,6 +39,7 @@
 #include "Spherical.hpp"         // spherical source terms
 #include "Timer.hpp"             // program timers
 #include "Units.hpp"             // unit information
+// #include "DerivedParameters.hpp"
 
 // standard libraries
 #include <cfloat>
@@ -48,7 +49,9 @@
 #include <fstream>
 #include <iostream>
 #include <omp.h>
+#include <ostream>
 #include <sstream>
+
 
 /*! @brief Activate this to disable fancy log output. */
 #define NO_LOGFILE
@@ -105,10 +108,11 @@ void write_snapshot(uint_fast64_t istep, double time, const Cell *cells,
   std::ofstream ofile(filename.str().c_str());
   ofile << "# time: " << time * UNIT_TIME_IN_SI << "\n";
   for (uint_fast32_t i = 1; i < ncell + 1; ++i) {
-    ofile << cells[i]._midpoint * UNIT_LENGTH_IN_SI << "\t"
+    ofile << cells[i]._midpoint / RBONDI << "\t"
           << cells[i]._rho * UNIT_DENSITY_IN_SI << "\t"
           << cells[i]._u * UNIT_VELOCITY_IN_SI << "\t"
-          << cells[i]._P * UNIT_PRESSURE_IN_SI << "\t" << cells[i]._nfac
+          << cells[i]._P * UNIT_PRESSURE_IN_SI << "\t"
+          << POLYTORPIC_CONSTANT_IN_SI * GAMMA * pow(cells[i]._rho *UNIT_DENSITY_IN_SI,GAMMA-1)
           << "\n";
   }
   ofile.close();
@@ -163,9 +167,6 @@ static inline bool changed(const int logentry, const Cell &cell) {
   case LOGENTRY_PRESSURE:
     return std::abs(cell._P - cell._last_P) >
            tol * std::abs(cell._P + cell._last_P);
-  case LOGENTRY_NFRAC:
-    return std::abs(cell._nfac - cell._last_nfac) >
-           tol * std::abs(cell._nfac + cell._last_nfac);
   default:
     return false;
   }
@@ -189,9 +190,6 @@ static inline double get_value(const int logentry, Cell &cell) {
   case LOGENTRY_PRESSURE:
     cell._last_P = cell._P;
     return cell._P * UNIT_PRESSURE_IN_SI;
-  case LOGENTRY_NFRAC:
-    cell._last_nfac = cell._nfac;
-    return cell._nfac;
   default:
     return 0.;
   }
@@ -326,10 +324,6 @@ int main(int argc, char **argv) {
   // Bondi.hpp
   unsigned int ncell = NCELL;
   std::string ic_file_name(IC_FILE_NAME);
-  double transition_width = IONISATION_TRANSITION_WIDTH;
-  double bondi_pressure_contrast = BONDI_PRESSURE_CONTRAST;
-  // disable unused variable warnings
-  (void)bondi_pressure_contrast;
 
   // now overwrite with the actual command line parameters (if specified)
   if (argc > 1) {
@@ -338,17 +332,9 @@ int main(int argc, char **argv) {
   if (argc > 2) {
     ic_file_name = argv[2];
   }
-  if (argc > 3) {
-    transition_width = atof(argv[3]);
-  }
-  if (argc > 4) {
-    bondi_pressure_contrast = atof(argv[4]);
-  }
+
 
   // output: most of this was useful at some point
-  std::cout << "Slope: " << (1.5 / transition_width) / UNIT_LENGTH_IN_SI
-            << std::endl;
-
   std::cout << "UNIT_LENGTH_IN_SI: " << UNIT_LENGTH_IN_SI << std::endl;
   std::cout << "UNIT_MASS_IN_SI: " << UNIT_MASS_IN_SI << std::endl;
   std::cout << "UNIT_TIME_IN_SI: " << UNIT_TIME_IN_SI << std::endl;
@@ -357,30 +343,26 @@ int main(int argc, char **argv) {
   std::cout << "UNIT_PRESSURE_IN_SI: " << UNIT_PRESSURE_IN_SI << std::endl;
 
 #if EOS == EOS_ISOTHERMAL || EOS == EOS_BONDI
+  std::cout << "GAMMA = " << GAMMA << std::endl;
   std::cout << "Newton G: "
             << G_INTERNAL *
                    (UNIT_LENGTH_IN_SI * UNIT_LENGTH_IN_SI * UNIT_LENGTH_IN_SI /
                     UNIT_MASS_IN_SI / UNIT_TIME_IN_SI / UNIT_TIME_IN_SI)
             << " m^3 kg^-1 s^-2" << std::endl;
-  std::cout << "ISOTHERMAL_C_SQUARED: " << ISOTHERMAL_C_SQUARED << std::endl;
-  std::cout << "Neutral sound speed: "
-            << std::sqrt(ISOTHERMAL_C_SQUARED) * UNIT_VELOCITY_IN_SI
-            << " m s^-1" << std::endl;
-  std::cout << "Neutral temperature: "
-            << ISOTHERMAL_C_SQUARED * HYDROGEN_MASS_IN_SI *
-                   UNIT_VELOCITY_IN_SI * UNIT_VELOCITY_IN_SI / BOLTZMANN_K_IN_SI
-            << " K" << std::endl;
   std::cout << "Neutral Bondi radius: " << RBONDI << " ("
             << RBONDI * UNIT_LENGTH_IN_SI / AU_IN_SI << " AU)" << std::endl;
-  std::cout << "Density at R_Bondi: "
-            << bondi_density(RBONDI * UNIT_LENGTH_IN_SI / (20. * AU_IN_SI)) *
-                   UNIT_DENSITY_IN_SI
-            << std::endl;
+  std::cout << "SOUND at Infinity: "
+            << SOUND_INFINITY
+            <<std::endl;
+  std::cout << "Density at Infinity: "
+            << RHO_INFINITY
+            <<std::endl;
+  std::cout << "Polytropic Constant: "
+            << POLYTORPIC_CONSTANT << ", SI = " << POLYTORPIC_CONSTANT_IN_SI
+            <<std::endl;
+
 #endif
 
-  std::cout << "Initial ionisation radius: "
-            << INITIAL_IONISATION_RADIUS * UNIT_LENGTH_IN_SI / AU_IN_SI
-            << " AU (" << INITIAL_IONISATION_RADIUS << ")" << std::endl;
 
   std::cout << "Point mass: " << MASS_POINT_MASS * UNIT_MASS_IN_SI << " kg"
             << std::endl;
@@ -476,8 +458,10 @@ int main(int argc, char **argv) {
     Etot += get_shell_energy(cells[i]);
 
     // time step criterion
+    // const double cs =
+    //     std::sqrt(GAMMA * cells[i]._P / cells[i]._rho) + std::abs(cells[i]._u);
     const double cs =
-        std::sqrt(GAMMA * cells[i]._P / cells[i]._rho) + std::abs(cells[i]._u);
+        BondiFunc::cs(cells[i]._rho)  +std::abs(cells[i]._u);
     const double hydro_dt = courant_factor * cells[i]._V / cs;
     const double dt = std::min(hydro_dt, 1e10);
 
@@ -500,7 +484,6 @@ int main(int argc, char **argv) {
     cells[i]._last_rho = cells[i]._rho;
     cells[i]._last_u = cells[i]._u;
     cells[i]._last_P = cells[i]._P;
-    cells[i]._last_nfac = cells[i]._nfac;
     cells[i]._last_entry = 0;
   }
 
@@ -526,7 +509,6 @@ int main(int argc, char **argv) {
   // these bits are handled in EOS.hpp (and Bondi.hpp for EOS_BONDI), and
   // Boundaries.hpp (and Bondi.hpp for BOUNDARIES_BONDI).
   boundary_conditions_initialize();
-  ionisation_initialize();
 
 // initialize the Riemann solver
 // we use a fast HLLC solver
@@ -562,9 +544,6 @@ int main(int argc, char **argv) {
 
     // do first gravity kick, handled by Potential.hpp
     do_gravity();
-
-    // do ionisation, handled by EOS.hpp (and Bondi.hpp for EOS_BONDI).
-    do_ionisation();
 
     // update the primitive variables based on the values of the conserved
     // variables and the current cell volume
@@ -628,8 +607,8 @@ int main(int argc, char **argv) {
 #if EOS == EOS_BONDI
       // we added this bit for the case where we want to add accreted material
       // to the central mass (currently not used)
-      std::cout << "\t\t\tCentral mass: " << central_mass << " ("
-                << (central_mass / MASS_POINT_MASS) << ")" << std::endl;
+      // std::cout << "\t\t\tCentral mass: " << central_mass << " ("
+      //           << (central_mass / MASS_POINT_MASS) << ")" << std::endl;
 #endif
       std::cout << "Total energy: " << Etot * UNIT_ENERGY_IN_SI << " J"
                 << std::endl;
@@ -646,6 +625,10 @@ int main(int argc, char **argv) {
       write_snapshot(isnap, current_integer_time * time_conversion_factor,
                      cells, ncell);
       ++isnap;
+      std::cout<<isnap<<std::endl;
+        if (isnap == 1000) {
+            cells[5].print();
+        }
     }
 
     // apply boundary conditions
@@ -792,7 +775,9 @@ int main(int argc, char **argv) {
       solver.solve_for_flux(rhoL_dash, uL_dash, PL_dash, rhoR_dash, uR_dash,
                             PR_dash, mflux, pflux, Eflux);
       // Change fluxes to account for thermal conduction
+      // std::cout<<"Eflux before = "<<Eflux<<std::endl;
       Eflux -= THERMAL_CONDUCTIVITY * dTdx * rhoFC;
+      // std::cout<<"Eflux after = "<<Eflux<<std::endl;
       // set the left and right fluxes
       // (unless the corresponding cell is a ghost)
       if (i < ncell + 1) {
@@ -809,7 +794,7 @@ int main(int argc, char **argv) {
       // call a special function for flux that crosses the inner outflow
       // boundary. This currently does not do anything.
       if (i == 1) {
-        flux_into_inner_mask(dt * mflux);
+        //flux_into_inner_mask(dt * mflux);
       }
     }
 

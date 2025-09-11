@@ -1,12 +1,12 @@
-# write the configuration command for a Bondi setup run
+# write the configuration command for a heat conduction run
 
 import get_cmake_command
 
-bondi_options = {
+heat_conduction_options = {
     "rmin_in_au": 10.0,
-    "rmax_in_au": 100.0,
-    "ncell": 2700,
-    "gamma": 1.001,
+    "rmax_in_au": 5000.0,
+    "ncell": 2000,
+    "gamma":1.3,
     "maxtime_in_yr": 40.0,
     "number_of_snaps": 2000,
     "ic": "IC_BONDI",
@@ -18,14 +18,16 @@ bondi_options = {
     "mass_point_mass_in_msol": 18.0,
     "bondi_density_in_si": 1.0e-16,
     "bondi_pressure_contrast": 32.0,
-    "initial_ionisation_radius_in_au": 30.0,
     "unit_mass_in_si": 2.479e31,
     "unit_length_in_si": 1.2e13,
-    "ionisation_mode": "IONISATION_MODE_CONSTANT",
-    "ionisation_transition": "IONISATION_TRANSITION_SMOOTH",
-    "ionisation_transition_width_in_au": 5.0,
     "courant_factor": 0.05,
     "riemannsolver_type": "RIEMANNSOLVER_TYPE_HLLC",
+    # Heat conduction parameters
+    "heat_conduction": "HEAT_CONDUCTION_OFF",
+    "thermal_conductivity": 0.0,
+    "heat_conduction_timestep_factor": 0.1,
+    "sound_infinity_in_si": 2030.71,
+    "rho_infinity_in_si": 1e-16,
 }
 
-print(get_cmake_command.get_cmake_command(bondi_options))
+print(get_cmake_command.get_cmake_command(heat_conduction_options))

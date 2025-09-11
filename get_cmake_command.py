@@ -1,5 +1,3 @@
-#! /usr/bin/python
-
 ################################################################################
 # This file is part of HydroCodeSpherical1D
 # Copyright (C) 2017 Bert Vandenbroucke (bert.vandenbroucke@gmail.com)
@@ -46,12 +44,8 @@ configuration_options = {
     "bondi_density_in_si": 1.0e-16,
     "bondi_pressure_contrast": 32.0,
     "ic_file_name": "ic.dat",
-    "initial_ionisation_radius_in_au": 30.0,
     "unit_mass_in_si": 2.479e31,
     "unit_length_in_si": 1.2e13,
-    "ionisation_mode": "IONISATION_MODE_SELF_CONSISTENT",
-    "ionisation_transition": "IONISATION_TRANSITION_SMOOTH",
-    "ionisation_transition_width_in_au": 5.0,
     "courant_factor": 0.05,
     "riemannsolver_type": "RIEMANNSOLVER_TYPE_HLLC",
     "dimensionality": "DIMENSIONALITY_3D",
@@ -60,7 +54,11 @@ configuration_options = {
     "heat_conduction": "HEAT_CONDUCTION_OFF",
     "thermal_conductivity": 1.0e-6,
     "heat_conduction_timestep_factor": 0.1,
+    "sound_infinity_in_si": 2033.71,
+    "rho_infinity_in_si": 1e-16,
+    "velocity_infinity_in_si": 0.0,
 }
+
 
 ##
 # @brief Generate the cmake command to configure the code with a specific

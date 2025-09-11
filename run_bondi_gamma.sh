@@ -3,10 +3,17 @@
 # run a Bondi setup simulation with heat conduction in the folder given below, with the number of
 # threads set below
 
-folder=build_bondi_conduction
+GAMMA="$1"
+GAMMA_NAME="${GAMMA/./p}"
+folder=build_gamma_${GAMMA_NAME}
 nthread=8
 
-cmake_command=$(python write_configuration_heat_conduction.py)
+echo "GAMMA = ${GAMMA}"
+echo "GAMMA_NAME = ${GAMMA_NAME}"
+sed -i -E "s#\"gamma\":.*#\"gamma\":${GAMMA},#" ./write_test.py
+cmake_command=$(python write_test.py)
+
+echo "$cmake_command"
 
 mkdir $folder
 cd $folder

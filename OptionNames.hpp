@@ -66,23 +66,6 @@
 /*! @brief Initial condition for the Starbench test. */
 #define IC_STARBENCH 5
 
-// Possible modes of ionisation.
-
-/*! @brief Self-consistent ionisation: we compute a luminosity based on the
- *  given initial ionisation radius and then use that luminosity to compute the
- *  ionisation state later on in the simulation. */
-#define IONISATION_MODE_SELF_CONSISTENT 1
-/*! @brief Fixed ionisation radius: use the initial ionisation radius as a
- *  constant ionisation radius. */
-#define IONISATION_MODE_CONSTANT 2
-
-// Possible types of ionisation transition.
-
-/*! @brief Jump from ionised to neutral. */
-#define IONISATION_TRANSITION_JUMP 1
-/*! @brief Smooth transition from ionised to neutral. */
-#define IONISATION_TRANSITION_SMOOTH 2
-
 // Possible types of Riemann solver
 
 /*! @brief Exact Riemann solver. */

@@ -58,10 +58,6 @@
 /*! @brief Choice of equation of state (set by the configuration). */
 #define EOS @eos@
 
-/*! @brief Constant temperature in the neutral region (in K; set by the
- *  configuration). */
-#define ISOTHERMAL_TEMPERATURE_IN_K (@isothermal_temperature_in_k@)
-
 /*! @brief Choice of external potential (set by the configuration). */
 #define POTENTIAL @potential@
 
@@ -83,28 +79,15 @@
  *  configuration). */
 #define BONDI_DENSITY_IN_SI (@bondi_density_in_si@)
 
-/*! @brief Default pressure contrast between ionised and neutral region (set by
- *  the configuration). */
-#define BONDI_PRESSURE_CONTRAST (@bondi_pressure_contrast@)
-
 /*! @brief Default name of the initial condition file (if IC_FILE is
  *  selected; set by the configuration). */
 #define IC_FILE_NAME "@ic_file_name@"
-
-/*! @brief Initial ionisation radius (in AU; set by the configuration). */
-#define INITIAL_IONISATION_RADIUS_IN_AU (@initial_ionisation_radius_in_au@)
 
 /*! @brief Mass unit (in kg; set by the configuration). */
 #define UNIT_MASS_IN_SI (@unit_mass_in_si@)
 
 /*! @brief Length unit (in m; set by the configuration). */
 #define UNIT_LENGTH_IN_SI (@unit_length_in_si@)
-
-/*! @brief Ionisation mode (set by the configuration). */
-#define IONISATION_MODE (@ionisation_mode@)
-
-/*! @brief Ionisation transition type (set by the configuration). */
-#define IONISATION_TRANSITION (@ionisation_transition@)
 
 /*! @brief Courant factor for the time step criterion. */
 #define COURANT_FACTOR (@courant_factor@)
@@ -129,5 +112,13 @@
 
 /*! @brief Heat conduction timestep factor (set by configuration). */
 #define HEAT_CONDUCTION_TIMESTEP_FACTOR (@heat_conduction_timestep_factor@)
+
+/*! @brief Sound speed at infinity */
+#define SOUND_INFINITY_IN_SI (@sound_infinity_in_si@)
+
+/*! @brief Density at infinity */
+#define RHO_INFINITY_IN_SI (@rho_infinity_in_si@)
+
+#define VELOCITY_INFINITY_IN_SI (@velocity_infinity_in_si@)
 
 #endif // PARAMETERS_HPP

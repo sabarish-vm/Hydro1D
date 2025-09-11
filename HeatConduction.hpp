@@ -48,21 +48,6 @@
   } \
   min_heat_dt
 
-/**
- * @brief Initialize heat conduction variables.
- * 
- * Set heat fluxes to zero initially.
- * 
- * @param cells Cell array
- * @param ncell Number of cells
- */
-#define initialize_heat_conduction(cells, ncell) \
-  _Pragma("omp parallel for") \
-  for (uint_fast32_t i = 0; i < ncell + 2; ++i) { \
-    cells[i]._heat_flux_left = 0.; \
-    cells[i]._heat_flux_right = 0.; \
-  }
-
 #else // HEAT_CONDUCTION == HEAT_CONDUCTION_OFF
 
 /* Heat conduction disabled - do nothing */

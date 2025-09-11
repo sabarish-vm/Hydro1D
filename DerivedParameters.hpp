@@ -42,14 +42,6 @@
 #define MASS_POINT_MASS                                                        \
   (MASS_POINT_MASS_IN_MSOL * SOLAR_MASS_IN_SI / UNIT_MASS_IN_SI)
 
-/*! @brief Initial ionisation radius (in internal units of L). */
-#define INITIAL_IONISATION_RADIUS                                              \
-  (INITIAL_IONISATION_RADIUS_IN_AU * AU_IN_SI / UNIT_LENGTH_IN_SI)
-
-/*! @brief Ionisation transition width (in internal units of L). */
-#define IONISATION_TRANSITION_WIDTH                                            \
-  (IONISATION_TRANSITION_WIDTH_IN_AU * AU_IN_SI / UNIT_LENGTH_IN_SI)
-
 /*! @brief Size of the simulation "box" (in internal units of L). */
 #define BOXSIZE (RMAX - RMIN)
 
@@ -61,10 +53,21 @@
  *  of L). */
 #define HALF_CELLSIZE (0.5 * CELLSIZE)
 
-/*! @brief Isothermal sound speed squared in the neutral region (if
- *  EOS_ISOTHERMAL is selected, in internal units of L T^-1). */
-#define ISOTHERMAL_C_SQUARED                                                   \
-  (ISOTHERMAL_TEMPERATURE_IN_K * BOLTZMANN_K_IN_SI / HYDROGEN_MASS_IN_SI /     \
-   UNIT_VELOCITY_IN_SI / UNIT_VELOCITY_IN_SI)
+#define SOUND_INFINITY \
+    (SOUND_INFINITY_IN_SI/UNIT_VELOCITY_IN_SI)
+
+#define VELOCITY_INFINITY \
+    (VELOCITY_INFINITY_IN_SI/UNIT_VELOCITY_IN_SI)
+
+#define RHO_INFINITY \
+    RHO_INFINITY_IN_SI/UNIT_DENSITY_IN_SI
+
+#define POLYTORPIC_CONSTANT \
+    (SOUND_INFINITY*SOUND_INFINITY / GAMMA / pow(RHO_INFINITY,GAMMA-1))
+
+#define POLYTORPIC_CONSTANT_IN_SI \
+    (SOUND_INFINITY_IN_SI*SOUND_INFINITY_IN_SI / GAMMA / pow(RHO_INFINITY_IN_SI,GAMMA-1))
+
+#define PRESSURE_INFINITY (POLYTORPIC_CONSTANT * pow(RHO_INFINITY,GAMMA))
 
 #endif // DERIVEDPARAMETERS_HPP
