@@ -27,7 +27,6 @@
 #define BONDI_HPP
 
 #include "Cell.hpp"           // Cell classe
-#include "LambertW.hpp"       // Lambert W function implementation
 #include "SafeParameters.hpp" // Safe way to include Parameters.hpp
 #include "DerivedParameters.hpp"
 
@@ -46,14 +45,14 @@
 
 namespace BondiFunc {
     inline double cs(const double& rho) {
-            double a2 = POLYTORPIC_CONSTANT * GAMMA * pow(rho,GAMMA-1) ;
+            double a2 = POLYTROPIC_CONSTANT * GAMMA * pow(rho,GAMMA-1) ;
             double a = std::sqrt(a2);
             return a;
         }
 }
 
 
-#define initial_pressure(cell) cell._P = POLYTORPIC_CONSTANT * pow(cell._rho,GAMMA)
+#define initial_pressure(cell) cell._P = POLYTROPIC_CONSTANT * pow(cell._rho,GAMMA)
 
 /**
  * @brief Conversion function called during the primitive variable conversion
@@ -64,8 +63,11 @@ namespace BondiFunc {
  *
  * @param cell Cell.
  */
+#define update_cs(cell)                                                  \
+  cell._cs = BondiFunc::cs(cell._rho);
+
 #define update_pressure(cell)                                                  \
-  cells[i]._P = POLYTORPIC_CONSTANT * pow(cells[i]._rho,GAMMA);
+  cell._P = POLYTROPIC_CONSTANT * pow(cells[i]._rho,GAMMA);\
 
 #endif // EOS == EOS_BONDI
 
@@ -130,9 +132,11 @@ std::cout<<"BC_initialize"<<std::endl;
   _Pragma("omp parallel for") for (unsigned int i = 1; i < ncell + 1; ++i) {   \
     cells[i]._rho = RHO_INFINITY;                                              \
     cells[i]._u = VELOCITY_INFINITY;                                           \
-    cells[i]._P = POLYTORPIC_CONSTANT * pow(cells[i]._rho,GAMMA);              \
+    cells[i]._P = POLYTROPIC_CONSTANT * pow(cells[i]._rho,GAMMA);              \
     const double r2 = cells[i]._midpoint * cells[i]._midpoint;                 \
     cells[i]._a = -G_INTERNAL * MASS_POINT_MASS / r2;                          \
+    cells[i]._cs = std::sqrt(POLYTROPIC_CONSTANT_IN_SI * GAMMA *               \
+          pow(cells[i]._rho *UNIT_DENSITY_IN_SI,GAMMA-1));                     \
   }
 
 #endif // IC == IC_BONDI

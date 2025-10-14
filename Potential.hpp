@@ -32,9 +32,11 @@
 #if POTENTIAL == POTENTIAL_POINT_MASS
 #define do_gravity() /* add gravitational acceleration */                      \
   _Pragma("omp parallel for") for (uint_fast32_t i = 1; i < ncell + 1; ++i) {  \
+    const double r = cells[i]._midpoint;                                       \
+    const double a = -G_INTERNAL * MASS_POINT_MASS / (r * r);                  \
     const double m = cells[i]._V * cells[i]._rho;                              \
-    cells[i]._p += 0.5 * cells[i]._dt * cells[i]._a * m;                       \
-    cells[i]._E += 0.5 * cells[i]._dt * cells[i]._a * m * cells[i]._u;         \
+    cells[i]._p += 0.5 * cells[i]._dt * a * m;                                 \
+    cells[i]._E += 0.5 * cells[i]._dt * a * m * cells[i]._u;                   \
     /* we do not update the total energy, as we only run gravity simulations   \
        with an isothermal eos, in which case the total energy is ignored by    \
        the hydro scheme */                                                     \

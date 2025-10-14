@@ -42,6 +42,8 @@ public:
   double _u;
   /*! @brief Pressure (in internal units of M L^-1 T^-2). */
   double _P;
+  /*! @brief Sound speed (in internal units) */
+  double _cs;
 
 
   /*! @brief Density gradient (in internal units of M L^-4). */

@@ -39,7 +39,6 @@
 #include "Spherical.hpp"         // spherical source terms
 #include "Timer.hpp"             // program timers
 #include "Units.hpp"             // unit information
-// #include "DerivedParameters.hpp"
 
 // standard libraries
 #include <cfloat>
@@ -112,7 +111,7 @@ void write_snapshot(uint_fast64_t istep, double time, const Cell *cells,
           << cells[i]._rho * UNIT_DENSITY_IN_SI << "\t"
           << cells[i]._u * UNIT_VELOCITY_IN_SI << "\t"
           << cells[i]._P * UNIT_PRESSURE_IN_SI << "\t"
-          << POLYTORPIC_CONSTANT_IN_SI * GAMMA * pow(cells[i]._rho *UNIT_DENSITY_IN_SI,GAMMA-1)
+          << cells[i]._cs * UNIT_VELOCITY_IN_SI
           << "\n";
   }
   ofile.close();
@@ -352,13 +351,13 @@ int main(int argc, char **argv) {
   std::cout << "Neutral Bondi radius: " << RBONDI << " ("
             << RBONDI * UNIT_LENGTH_IN_SI / AU_IN_SI << " AU)" << std::endl;
   std::cout << "SOUND at Infinity: "
-            << SOUND_INFINITY
+            << SOUND_INFINITY << ", SI = " << SOUND_INFINITY_IN_SI
             <<std::endl;
   std::cout << "Density at Infinity: "
-            << RHO_INFINITY
+            << RHO_INFINITY << ", SI = " << RHO_INFINITY_IN_SI
             <<std::endl;
   std::cout << "Polytropic Constant: "
-            << POLYTORPIC_CONSTANT << ", SI = " << POLYTORPIC_CONSTANT_IN_SI
+            << POLYTROPIC_CONSTANT << ", SI = " << POLYTROPIC_CONSTANT_IN_SI
             <<std::endl;
 
 #endif
@@ -556,6 +555,8 @@ int main(int argc, char **argv) {
       cells[i]._u = cells[i]._p / cells[i]._m;
       // the pressure update depends on the equation of state
       // this is handled in EOS.hpp (and Bondi.hpp for EOS_BONDI)
+      // update_pressure(cells[i]);
+      update_cs(cells[i]);
       update_pressure(cells[i]);
 
       Etot += get_shell_energy(cells[i]);
