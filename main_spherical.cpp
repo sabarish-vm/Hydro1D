@@ -26,21 +26,18 @@
 
 // project includes
 #include "Bondi.hpp"             // for EOS_BONDI, BOUNDARIES_BONDI, IC_BONDI
-#include "Boundaries.hpp"        // for non Bondi boundary conditions
 #include "Cell.hpp"              // Cell class
-#include "EOS.hpp"               // for non Bondi equations of state
 #include "HLLCRiemannSolver.hpp" // fast HLLC Riemann solver
-#include "HeatConduction.hpp"    // heat conduction physics
-#include "IC.hpp"                // general initial condition interface
-#include "LogFile.hpp"           // log file output
 #include "Potential.hpp"         // external gravity
 #include "RiemannSolver.hpp"     // slow exact Riemann solver
 #include "SafeParameters.hpp"    // safe way to include Parameter.hpp
 #include "Spherical.hpp"         // spherical source terms
 #include "Timer.hpp"             // program timers
 #include "Units.hpp"             // unit information
+#include "LogFile.hpp"
 
 // standard libraries
+#include <algorithm>
 #include <cfloat>
 #include <cmath>
 #include <cstdint>
@@ -50,6 +47,7 @@
 #include <omp.h>
 #include <ostream>
 #include <sstream>
+#include <memory>
 
 
 /*! @brief Activate this to disable fancy log output. */
@@ -95,8 +93,7 @@ static std::string get_timestamp() {
  * @param cells Cells to write.
  * @param ncell Number of cells.
  */
-void write_snapshot(uint_fast64_t istep, double time, const Cell *cells,
-                    const unsigned int ncell) {
+void write_snapshot(uint_fast64_t istep, double time,const std::unique_ptr<Cell[]>& cells,                    const unsigned int ncell) {
   std::stringstream filename;
   filename << "snapshot_";
   filename.fill('0');
@@ -123,7 +120,7 @@ void write_snapshot(uint_fast64_t istep, double time, const Cell *cells,
  * @param cells Cells to write.
  * @param ncell Number of cells.
  */
-void write_binary_snapshot(const Cell *cells, const unsigned int ncell) {
+void write_binary_snapshot(const std::unique_ptr<Cell[]>& cells, const unsigned int ncell) {
   std::ofstream ofile("lastsnap.dat");
   for (uint_fast32_t i = 1; i < ncell + 1; ++i) {
     ofile.write(reinterpret_cast<const char *>(&cells[i]._rho), sizeof(double));
@@ -151,25 +148,25 @@ enum LogEntry {
  * @param logentry Log entry identifier.
  * @param cell Cell to check.
  */
-static inline bool changed(const int logentry, const Cell &cell) {
-  // tolerance: If the relative difference of the value and the last outputted
-  // value is less than this value, no output is written
-  // Should probably become a parameter at some point...
-  static const double tol = 1.e-3;
-  switch (logentry) {
-  case LOGENTRY_DENSITY:
-    return std::abs(cell._rho - cell._last_rho) >
-           tol * std::abs(cell._rho + cell._last_rho);
-  case LOGENTRY_VELOCITY:
-    return std::abs(cell._u - cell._last_u) >
-           tol * std::abs(cell._u + cell._last_u);
-  case LOGENTRY_PRESSURE:
-    return std::abs(cell._P - cell._last_P) >
-           tol * std::abs(cell._P + cell._last_P);
-  default:
-    return false;
-  }
-}
+// static inline bool changed(const int logentry, const Cell &cell) {
+//   // tolerance: If the relative difference of the value and the last outputted
+//   // value is less than this value, no output is written
+//   // Should probably become a parameter at some point...
+//   static const double tol = 1.e-3;
+//   switch (logentry) {
+//   case LOGENTRY_DENSITY:
+//     return std::abs(cell._rho - cell._last_rho) >
+//            tol * std::abs(cell._rho + cell._last_rho);
+//   case LOGENTRY_VELOCITY:
+//     return std::abs(cell._u - cell._last_u) >
+//            tol * std::abs(cell._u + cell._last_u);
+//   case LOGENTRY_PRESSURE:
+//     return std::abs(cell._P - cell._last_P) >
+//            tol * std::abs(cell._P + cell._last_P);
+//   default:
+//     return false;
+//   }
+// }
 
 /**
  * @brief Get the value for the given log entry variable.
@@ -178,21 +175,21 @@ static inline bool changed(const int logentry, const Cell &cell) {
  * @param cell Cell for which we want the variable.
  * @return Value of the variable.
  */
-static inline double get_value(const int logentry, Cell &cell) {
-  switch (logentry) {
-  case LOGENTRY_DENSITY:
-    cell._last_rho = cell._rho;
-    return cell._rho * UNIT_DENSITY_IN_SI;
-  case LOGENTRY_VELOCITY:
-    cell._last_u = cell._u;
-    return cell._u * UNIT_VELOCITY_IN_SI;
-  case LOGENTRY_PRESSURE:
-    cell._last_P = cell._P;
-    return cell._P * UNIT_PRESSURE_IN_SI;
-  default:
-    return 0.;
-  }
-}
+// static inline double get_value(const int logentry, Cell &cell) {
+//   switch (logentry) {
+//   case LOGENTRY_DENSITY:
+//     cell._last_rho = cell._rho;
+//     return cell._rho * UNIT_DENSITY_IN_SI;
+//   case LOGENTRY_VELOCITY:
+//     cell._last_u = cell._u;
+//     return cell._u * UNIT_VELOCITY_IN_SI;
+//   case LOGENTRY_PRESSURE:
+//     cell._last_P = cell._P;
+//     return cell._P * UNIT_PRESSURE_IN_SI;
+//   default:
+//     return 0.;
+//   }
+// }
 
 /**
  * @brief Write significantly changed variables to the log file.
@@ -204,8 +201,7 @@ static inline double get_value(const int logentry, Cell &cell) {
  * @param full_dump If set to True, dumps all cells irrespective of variable
  * changes.
  */
-static inline void write_logfile(LogFile &log, Cell *cells,
-                                 const unsigned int ncell, const double time,
+static inline void write_logfile(LogFile &log, const std::unique_ptr<Cell[]>& cells,                                 const unsigned int ncell, const double time,
                                  bool full_dump = false) {
 #ifndef NO_LOGFILE
   if (full_dump) {
@@ -398,7 +394,7 @@ int main(int argc, char **argv) {
   // create the 1D spherical grid
   // we create 2 ghost cells to the left and to the right of the simulation box
   // to handle boundary conditions
-  Cell *cells = new Cell[ncell + 2];
+  auto cells = std::make_unique<Cell[]>(ncell + 2);
 #pragma omp parallel for
   for (uint_fast32_t i = 0; i < ncell + 2; ++i) {
     // cell positions (lower limit, center and upper limit) are precomputed for
@@ -420,7 +416,7 @@ int main(int argc, char **argv) {
   // this bit is handled by IC.hpp, and specific implementations in ICFile.hpp
   // (if configured with IC_FILE), Bondi.hpp (if configured with IC_BONDI), or
   // Sod.hpp (if configured with IC_SOD).
-  initialize(cells, ncell);
+    BondiFunc::initialize(cells, ncell);
 
   // Courant factor for the CFL time step criterion
   // we use a very conservative value
@@ -446,7 +442,7 @@ int main(int argc, char **argv) {
   for (uint_fast32_t i = 1; i < ncell + 1; ++i) {
     // apply the equation of state to get the initial pressure (if necessary)
     // this bit is handled by EOS.hpp and Bondi.hpp (for EOS_BONDI)
-    initial_pressure(cells[i]);
+    BondiFunc::initial_pressure(cells[i]);
 
     // use the cell volume to convert primitive into conserved variables
     cells[i]._m = cells[i]._rho * cells[i]._V;
@@ -504,11 +500,6 @@ int main(int argc, char **argv) {
     cells[i]._dt = cells[i]._integer_dt * time_conversion_factor;
   }
 
-  // initialize boundary condition and ionisation variables
-  // these bits are handled in EOS.hpp (and Bondi.hpp for EOS_BONDI), and
-  // Boundaries.hpp (and Bondi.hpp for BOUNDARIES_BONDI).
-  boundary_conditions_initialize();
-
 // initialize the Riemann solver
 // we use a fast HLLC solver
 // replace "HLLCRiemannSolver" with "RiemannSolver" to use a slower, exact
@@ -556,8 +547,8 @@ int main(int argc, char **argv) {
       // the pressure update depends on the equation of state
       // this is handled in EOS.hpp (and Bondi.hpp for EOS_BONDI)
       // update_pressure(cells[i]);
-      update_cs(cells[i]);
-      update_pressure(cells[i]);
+            BondiFunc::update_cs(cells[i]);
+            BondiFunc::update_pressure(cells[i]);
 
       Etot += get_shell_energy(cells[i]);
 
@@ -634,7 +625,7 @@ int main(int argc, char **argv) {
 
     // apply boundary conditions
     // handled by Boundaries.hpp (and Bondi.hpp for BOUNDARIES_BONDI)
-    boundary_conditions_primitive_variables();
+        BondiFunc::boundary_conditions_initialize(cells,ncell);
 
 // compute slope limited gradients for the primitive variables in each cell
 #pragma omp parallel for
@@ -689,7 +680,7 @@ int main(int argc, char **argv) {
 
     // apply boundary conditions for the gradients
     // handled by Boundaries.hpp (and Bondi.hpp for BOUNDARIES_BONDI)
-    boundary_conditions_gradients();
+        BondiFunc::boundary_conditions_gradients(cells,ncell);
 
 #if HYDRO_ORDER == 1
 // reset all gradients to zero to disable the second order scheme
@@ -839,7 +830,6 @@ int main(int argc, char **argv) {
   write_binary_snapshot(cells, ncell);
 
   // clean up: free cell memory
-  delete[] cells;
 
   // stop timing the program and display run time information
   total_time.stop();
