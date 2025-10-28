@@ -24,66 +24,67 @@
  * @author Bert Vandenbroucke (bv7@st-andrews.ac.uk)
  */
 #pragma once
-#include "Cell.hpp"           // Cell classe
-#include "SafeParameters.hpp" // Safe way to include Parameters.hpp
+#include "Cell.hpp" // Cell classe
 #include "DerivedParameters.hpp"
+#include "SafeParameters.hpp" // Safe way to include Parameters.hpp
 
 #include <cmath>
 #include <memory>
 #include <sys/types.h>
 
 #define BONDI_DENSITY (BONDI_DENSITY_IN_SI / UNIT_DENSITY_IN_SI)
-#define RBONDI (0.5 * G_INTERNAL * MASS_POINT_MASS / pow(SOUND_INFINITY,2))
+#define RBONDI (0.5 * G_INTERNAL * MASS_POINT_MASS / pow(SOUND_INFINITY, 2))
 
 namespace BondiFunc {
-    inline double cs(const double& rho) {
-            double a2 = POLYTROPIC_CONSTANT * GAMMA * pow(rho,GAMMA-1) ;
-            double a = std::sqrt(a2);
-            return a;
-        }
-
-    void inline initial_pressure(Cell& cell){ 
-    cell._P = POLYTROPIC_CONSTANT * pow(cell._rho,GAMMA);
-    }
-
-    void inline update_cs(Cell& cell) {
-    cell._cs = BondiFunc::cs(cell._rho);
-    }
-
-     void inline update_pressure(Cell& cell)   {
-  cell._P = POLYTROPIC_CONSTANT * pow(cell._rho,GAMMA);
-    }
-
-    void inline boundary_conditions_initialize(std::unique_ptr<Cell[]>& cells, u_int32_t ncell){
-    /* impose the Bondi solution at the boundaries */
-    /* lower boundary: outflow */
-    cells[0]._rho = cells[1]._rho;
-    cells[0]._u = cells[1]._u;
-    cells[0]._P = cells[1]._P;
-    /* upper boundary: neutral Bondi solution */
-    cells[ncell + 1]._rho = RHO_INFINITY;
-    cells[ncell + 1]._u = VELOCITY_INFINITY;
-    cells[ncell + 1]._P = PRESSURE_INFINITY;
-    }
-
-    void inline boundary_conditions_gradients(std::unique_ptr<Cell[]>& cells, u_int32_t ncell){
-    cells[0]._grad_rho = cells[1]._grad_rho;
-    cells[0]._grad_u = cells[1]._grad_u;
-    cells[0]._grad_P = cells[1]._grad_P;
-    cells[ncell + 1]._grad_rho = cells[ncell]._grad_rho;
-   cells[ncell + 1]._grad_u = cells[ncell]._grad_u;
-    cells[ncell + 1]._grad_P = cells[ncell]._grad_P;
-    }
-
-    void inline initialize(std::unique_ptr<Cell[]>& cells, u_int32_t ncell) {
-    _Pragma("omp parallel for") for (unsigned int i = 1; i < ncell + 1; ++i) {
-        cells[i]._rho = RHO_INFINITY;
-        cells[i]._u = VELOCITY_INFINITY;
-        cells[i]._P = POLYTROPIC_CONSTANT * pow(cells[i]._rho,GAMMA);
-        const double r2 = cells[i]._midpoint * cells[i]._midpoint;
-        cells[i]._a = -G_INTERNAL * MASS_POINT_MASS / r2;
-        cells[i]._cs = std::sqrt(POLYTROPIC_CONSTANT_IN_SI * GAMMA *
-                                 pow(cells[i]._rho *UNIT_DENSITY_IN_SI,GAMMA-1));
-        }
-    }
+inline double cs(const double &rho) {
+  double a2 = POLYTROPIC_CONSTANT * GAMMA * pow(rho, GAMMA - 1);
+  double a = std::sqrt(a2);
+  return a;
 }
+
+void inline initial_pressure(Cell &cell) {
+  cell._P = POLYTROPIC_CONSTANT * pow(cell._rho, GAMMA);
+}
+
+void inline update_cs(Cell &cell) { cell._cs = BondiFunc::cs(cell._rho); }
+
+void inline update_pressure(Cell &cell) {
+  cell._P = POLYTROPIC_CONSTANT * pow(cell._rho, GAMMA);
+}
+
+void inline boundary_conditions_initialize(std::unique_ptr<Cell[]> &cells,
+                                           u_int32_t ncell) {
+  /* impose the Bondi solution at the boundaries */
+  /* lower boundary: outflow */
+  cells[0]._rho = cells[1]._rho;
+  cells[0]._u = cells[1]._u;
+  cells[0]._P = cells[1]._P;
+  /* upper boundary: neutral Bondi solution */
+  cells[ncell + 1]._rho = RHO_INFINITY;
+  cells[ncell + 1]._u = VELOCITY_INFINITY;
+  cells[ncell + 1]._P = PRESSURE_INFINITY;
+}
+
+void inline boundary_conditions_gradients(std::unique_ptr<Cell[]> &cells,
+                                          u_int32_t ncell) {
+  cells[0]._grad_rho = cells[1]._grad_rho;
+  cells[0]._grad_u = cells[1]._grad_u;
+  cells[0]._grad_P = cells[1]._grad_P;
+  cells[ncell + 1]._grad_rho = cells[ncell]._grad_rho;
+  cells[ncell + 1]._grad_u = cells[ncell]._grad_u;
+  cells[ncell + 1]._grad_P = cells[ncell]._grad_P;
+}
+
+void inline initialize(std::unique_ptr<Cell[]> &cells, u_int32_t ncell) {
+  _Pragma("omp parallel for") for (unsigned int i = 1; i < ncell + 1; ++i) {
+    cells[i]._rho = RHO_INFINITY;
+    cells[i]._u = VELOCITY_INFINITY;
+    cells[i]._P = POLYTROPIC_CONSTANT * pow(cells[i]._rho, GAMMA);
+    const double r2 = cells[i]._midpoint * cells[i]._midpoint;
+    cells[i]._a = -G_INTERNAL * MASS_POINT_MASS / r2;
+    cells[i]._cs =
+        std::sqrt(POLYTROPIC_CONSTANT_IN_SI * GAMMA *
+                  pow(cells[i]._rho * UNIT_DENSITY_IN_SI, GAMMA - 1));
+  }
+}
+} // namespace BondiFunc
