@@ -23,23 +23,24 @@
  *
  * @author Bert Vandenbroucke (bv7@st-andrews.ac.uk)
  */
-#ifndef LOGFILE_HPP
-#define LOGFILE_HPP
+#ifndef LOGFILE_HPP_
+#define LOGFILE_HPP_
 
-#include <cstring>
 #include <fcntl.h>
-#include <iostream>
-#include <string>
 #include <sys/mman.h>
 #include <unistd.h>
+
+#include <cstring>
+#include <iostream>
+#include <string>
 
 /**
  * @brief Memory-mapped log file.
  */
 class LogFile {
-private:
+ private:
   /*! @brief The memory-mapped part of the log file. */
-  char *_memory_buffer;
+  char* _memory_buffer;
 
   /*! @brief The number of bytes of the memory-mapped part of the file that have
    *  already been used for output, in bytes. */
@@ -149,15 +150,15 @@ private:
     // parameters are the same as above, but now we start from a later offset in
     // the file
     _memory_buffer =
-        reinterpret_cast<char *>(mmap(nullptr, _memory_buffer_size, PROT_WRITE,
-                                      MAP_SHARED, _file, _file_offset));
+        reinterpret_cast<char*>(mmap(nullptr, _memory_buffer_size, PROT_WRITE,
+                                     MAP_SHARED, _file, _file_offset));
     if (_memory_buffer == MAP_FAILED) {
       std::cerr << "Error memory mapping new part of log file!" << std::endl;
       abort();
     }
   }
 
-public:
+ public:
   /**
    * @brief Constructor.
    *
@@ -168,9 +169,12 @@ public:
    * @param size Initial size of the file, in MB. The same size will be used for
    * the internal file buffer that is stored in memory.
    */
-  inline LogFile(const std::string filename, const size_t size)
-      : _memory_buffer(nullptr), _memory_buffer_count(0), _file_offset(0),
-        _file(0), _page_mask(get_page_mask()),
+  inline LogFile(const std::string& filename, const size_t& size)
+      : _memory_buffer(nullptr),
+        _memory_buffer_count(0),
+        _file_offset(0),
+        _file(0),
+        _page_mask(get_page_mask()),
         _memory_buffer_size(round_page_up(size << 20)) {
     // create the file
     // O_CREAT: create the file if it does not exist
@@ -203,7 +207,7 @@ public:
     //   other processes that memory map the same region
     //  file: this is the file we want to memory-map
     //  offset: we want to start memory mapping from offset 0 in the file
-    _memory_buffer = reinterpret_cast<char *>(
+    _memory_buffer = reinterpret_cast<char*>(
         mmap(nullptr, _memory_buffer_size, PROT_WRITE, MAP_SHARED, _file, 0));
     if (_memory_buffer == MAP_FAILED) {
       std::cerr << "Error memory mapping log file!" << std::endl;
@@ -285,7 +289,8 @@ public:
    *
    * @param value Value to write.
    */
-  template <typename _type_> inline void write(_type_ value) {
+  template <typename _type_>
+  inline void write(_type_ value) {
     const size_t vsize = sizeof(_type_);
     ensure_space(vsize);
     const size_t offset = _memory_buffer_count;
@@ -294,4 +299,4 @@ public:
   }
 };
 
-#endif // LOGFILE_HPP
+#endif  // LOGFILE_HPP_

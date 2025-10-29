@@ -511,8 +511,7 @@ int main(int argc, char** argv) {
   // we use a fast HLLC solver
   // replace "HLLCRiemannSolver" with "RiemannSolver" to use a slower, exact
   // solver
-  // auto solver = get_solver<RIEMANNSOLVER_TYPE>(static_cast<double>(GAMMA));
-  HLLCRiemannSolver solver(GAMMA);
+  auto solver = get_solver<RIEMANNSOLVER_TYPE>(static_cast<double>(GAMMA));
   // initialize some variables used to guesstimate the remaing run time
   Timer progress_timer;
   Timer step_time;

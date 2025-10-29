@@ -27,10 +27,10 @@
  *
  * @author Bert Vandenbroucke (bv7@st-andrews.ac.uk)
  */
-#ifndef TIMER_HPP
-#define TIMER_HPP
+#ifndef TIMER_HPP_
+#define TIMER_HPP_
 
-#include <sys/time.h> // for timeval
+#include <sys/time.h>  // for timeval
 
 /**
  * @brief A simplified interface to the Unix system timer.
@@ -44,7 +44,7 @@
  * intervals measured.
  */
 class Timer {
-private:
+ private:
   /*! @brief Starting time of the timer */
   timeval _start;
 
@@ -54,7 +54,7 @@ private:
   /*! @brief Total time interval registered so far */
   timeval _diff;
 
-public:
+ public:
   /**
    * @brief Clear the internal timeval difference.
    */
@@ -68,13 +68,13 @@ public:
    */
   inline Timer() {
     reset();
-    gettimeofday(&_start, NULL);
+    gettimeofday(&_start, nullptr);
   }
 
   /**
    * @brief Record the current system time as starting time.
    */
-  inline void start() { gettimeofday(&_start, NULL); }
+  inline void start() { gettimeofday(&_start, nullptr); }
 
   /**
    * @brief Record the current system time as stopping time and add the
@@ -84,7 +84,7 @@ public:
    * (with microsecond precision).
    */
   inline double stop() {
-    gettimeofday(&_stop, NULL);
+    gettimeofday(&_stop, nullptr);
     timeval interval_diff;
     timersub(&_stop, &_start, &interval_diff);
     timeradd(&_diff, &interval_diff, &_diff);
@@ -106,7 +106,7 @@ public:
    */
   inline double interval() {
     timeval tempstop;
-    gettimeofday(&tempstop, NULL);
+    gettimeofday(&tempstop, nullptr);
     timeval time_interval;
     timersub(&tempstop, &_start, &time_interval);
     return time_interval.tv_sec + 1.e-6 * time_interval.tv_usec;
@@ -115,7 +115,7 @@ public:
   /**
    * @brief Restart the timer by overwriting the start time.
    */
-  inline void restart() { gettimeofday(&_start, NULL); }
+  inline void restart() { gettimeofday(&_start, nullptr); }
 };
 
-#endif // TIMER_HPP
+#endif  // TIMER_HPP_
