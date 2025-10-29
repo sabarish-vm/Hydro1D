@@ -23,25 +23,25 @@
  *
  * @author Bert Vandenbroucke (bv7@st-andrews.ac.uk)
  */
-#ifndef PHYSICALCONSTANTS_HPP
-#define PHYSICALCONSTANTS_HPP
+#ifndef PHYSICALCONSTANTS_HPP_
+#define PHYSICALCONSTANTS_HPP_
 
 /*! @brief Newton gravity constant G (in m^3 kg^-1 s^-2). */
-#define NEWTON_G_IN_SI 6.67408e-11
+constexpr double NEWTON_G_IN_SI = 6.67408e-11;
 
 /*! @brief Boltzmann constant k (in m^2 kg s^-1 K^-1). */
-#define BOLTZMANN_K_IN_SI 1.38064852e-23
+constexpr double BOLTZMANN_K_IN_SI = 1.38064852e-23;
 
 /*! @brief Hydrogen mass (in kg). */
-#define HYDROGEN_MASS_IN_SI 1.674e-27
+constexpr double HYDROGEN_MASS_IN_SI = 1.674e-27;
 
 /*! @brief Solar mass (in kg). */
-#define SOLAR_MASS_IN_SI 1.9891e30
+constexpr double SOLAR_MASS_IN_SI = 1.9891e30;
 
 /*! @brief Year (in s). */
-#define YEAR_IN_SI (365.25 * 24. * 3600.)
+constexpr double YEAR_IN_SI = (365.25 * 24. * 3600.);
 
 /*! @brief Astronomical unit (in m). */
-#define AU_IN_SI 1.496e11
+constexpr double AU_IN_SI = 1.496e11;
 
-#endif // PHYSICALCONSTANTS_HPP
+#endif  // PHYSICALCONSTANTS_HPP_

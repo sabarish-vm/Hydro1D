@@ -16,7 +16,7 @@
 # along with HydroCodeSpherical1D. If not, see <http://www.gnu.org/licenses/>.
 ################################################################################
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.15)
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
@@ -24,52 +24,10 @@ project(HydroCodeSpherical1D)
 
 set(SOURCES
     main_spherical.cpp
-
-    RiemannSolver.hpp
 )
 
-# macro that checks if a configuration value was set on the command line
-# if not, the default value is set and a warning is printed
-# we also print the actual value that is used
-macro(check_configuration_option option_name option_default_value)
-    if(NOT DEFINED ${option_name})
-        message(STATUS "Using default ${option_name}")
-        set(${option_name} ${option_default_value})
-    endif(NOT DEFINED ${option_name})
-    message(STATUS "${option_name}: ${${option_name}}")
-endmacro(check_configuration_option)
-
-# Configurable parameters
-
-check_configuration_option(rmin_in_au 10.)
-check_configuration_option(rmax_in_au 100.)
-check_configuration_option(ncell 2700)
-check_configuration_option(gamma 1.5)
-check_configuration_option(maxtime_in_yr 80.)
-check_configuration_option(number_of_snaps 4000)
-check_configuration_option(ic "IC_FILE")
-check_configuration_option(eos "EOS_BONDI")
-check_configuration_option(boundaries "BOUNDARIES_BONDI")
-check_configuration_option(potential "POTENTIAL_POINT_MASS")
-check_configuration_option(g_internal 1.)
-check_configuration_option(mass_point_mass_in_msol 18.)
-check_configuration_option(bondi_density_in_si 1.e-16)
-check_configuration_option(bondi_pressure_contrast 32.)
-check_configuration_option(ic_file_name "ic.dat")
-check_configuration_option(initial_ionisation_radius_in_au 30.)
-check_configuration_option(unit_mass_in_si 2.479e31)
-check_configuration_option(unit_length_in_si 1.2e13)
-check_configuration_option(courant_factor 0.05)
-check_configuration_option(riemannsolver_type "RIEMANNSOLVER_TYPE_HLLC")
-check_configuration_option(dimensionality "DIMENSIONALITY_3D")
-check_configuration_option(hydro_order 2)
-check_configuration_option(status_update_interval 10.)
-check_configuration_option(heat_conduction "HEAT_CONDUCTION_OFF")
-check_configuration_option(thermal_conductivity 1.0e-6)
-check_configuration_option(heat_conduction_timestep_factor 0.1)
-
 configure_file(${PROJECT_SOURCE_DIR}/Parameters.hpp.in
-               ${PROJECT_BINARY_DIR}/Parameters.hpp @only)
+               ${PROJECT_BINARY_DIR}/Parameters.hpp @ONLY)
 
 include_directories(${PROJECT_BINARY_DIR})
 
@@ -85,3 +43,4 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math -ftree-vectorize")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wshadow")
 
 add_executable(HydroCodeSpherical1D ${SOURCES})
+target_include_directories(HydroCodeSpherical1D PRIVATE ${PROJECT_SOURCE_DIR})

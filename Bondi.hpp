@@ -24,16 +24,13 @@
  * @author Bert Vandenbroucke (bv7@st-andrews.ac.uk)
  */
 #pragma once
-#include "Cell.hpp" // Cell classe
-#include "DerivedParameters.hpp"
-#include "SafeParameters.hpp" // Safe way to include Parameters.hpp
-
 #include <cmath>
 #include <memory>
-#include <sys/types.h>
 
-#define BONDI_DENSITY (BONDI_DENSITY_IN_SI / UNIT_DENSITY_IN_SI)
-#define RBONDI (G_INTERNAL * MASS_POINT_MASS / pow(SOUND_INFINITY, 2))
+#include "./Cell.hpp"  // Cell classe
+#include "./DerivedParameters.hpp"
+
+constexpr double RBONDI = (G_INTERNAL * MASS_POINT_MASS / (SOUND_INFINITY_2));
 
 namespace BondiFunc {
 inline double cs(const double &rho) {
@@ -87,4 +84,4 @@ void inline initialize(std::unique_ptr<Cell[]> &cells, u_int32_t ncell) {
                   pow(cells[i]._rho * UNIT_DENSITY_IN_SI, GAMMA - 1));
   }
 }
-} // namespace BondiFunc
+}  // namespace BondiFunc

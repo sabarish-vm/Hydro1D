@@ -24,11 +24,12 @@
  * @author Bert Vandenbroucke (bert.vandenbroucke@ugent.be,
  * bv7@st-andrews.ac.uk)
  */
-#ifndef HLLCRIEMANNSOLVER_HPP
-#define HLLCRIEMANNSOLVER_HPP
+#ifndef HLLCRIEMANNSOLVER_HPP_
+#define HLLCRIEMANNSOLVER_HPP_
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 /**
  * @brief HLLC Riemann solver.
@@ -37,7 +38,7 @@
  * Riemann Solvers and Numerical Methods for Fluid Dynamics.
  */
 class HLLCRiemannSolver {
-private:
+ private:
   /*! @brief Adiabatic index \f$\gamma{}\f$. */
   double _gamma;
 
@@ -47,14 +48,15 @@ private:
   /*! @brief \f$\frac{1}{\gamma{}-1}\f$. */
   double _odgm1;
 
-public:
+ public:
   /**
    * @brief Constructor.
    *
    * @param gamma Adiabatic index \f$\gamma{}\f$.
    */
-  HLLCRiemannSolver(double gamma = 5. / 3.)
-      : _gamma(gamma), _hgp1dg(0.5 * (_gamma + 1.) / _gamma),
+  explicit HLLCRiemannSolver(double gamma = 5. / 3)
+      : _gamma(gamma),
+        _hgp1dg(0.5 * (_gamma + 1.) / _gamma),
         _odgm1(1. / (_gamma - 1.)) {}
 
   /**
@@ -74,9 +76,8 @@ public:
    * a vacuum state (0) was sampled.
    */
   inline int solve_for_flux(double rhoL, double uL, double PL, double rhoR,
-                            double uR, double PR, double &mflux, double &pflux,
-                            double &Eflux) {
-
+                            double uR, double PR, double& mflux, double& pflux,
+                            double& Eflux) {
     // Handle vacuum
     if (rhoL == 0. && rhoR == 0.) {
       mflux = 0.;
@@ -175,4 +176,4 @@ public:
   }
 };
 
-#endif // HLLCRIEMANNSOLVER_HPP
+#endif  // HLLCRIEMANNSOLVER_HPP_

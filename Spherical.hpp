@@ -23,8 +23,14 @@
  *
  * @author Bert Vandenbroucke (bv7@st-andrews.ac.uk)
  */
-#ifndef SPHERICAL_HPP
-#define SPHERICAL_HPP
+#ifndef SPHERICAL_HPP_
+#define SPHERICAL_HPP_
+#include <cstdint>
+#include <memory>
+
+#include "./Cell.hpp"
+#include "./OptionNames.hpp"
+#include "./Parameters.hpp"
 
 /**
  * @brief Compute the spherical source term for the given specific conserved
@@ -111,25 +117,28 @@ static inline void fourth_order_runge_kutta(const double dt, const double Sfac,
  * We use a second order Runge-Kutta step and apply an operator splitting method
  * to couple the source term to the hydro step.
  */
-#if DIMENSIONALITY == DIMENSIONALITY_1D
-#define add_spherical_source_term()
-#elif DIMENSIONALITY == DIMENSIONALITY_3D
-#define add_spherical_source_term()                                            \
-  _Pragma("omp parallel for") for (uint_fast32_t i = 1; i < ncell + 1; ++i) {  \
-    if (cells[i]._m > 0.) {                                                    \
-      const double r = cells[i]._midpoint;                                     \
-      const double Sfac = 1. / r;                                              \
-      const double Vinv = 1. / cells[i]._V;                                    \
-      const double dt = cells[i]._dt;                                          \
-      const double Ui[3] = {cells[i]._m * Vinv, cells[i]._p * Vinv,            \
-                            cells[i]._E * Vinv};                               \
-      double U[3];                                                             \
-      fourth_order_runge_kutta(dt, Sfac, Ui, U);                               \
-      cells[i]._m = U[0] * cells[i]._V;                                        \
-      cells[i]._p = U[1] * cells[i]._V;                                        \
-      cells[i]._E = U[2] * cells[i]._V;                                        \
-    }                                                                          \
+template <Coordinate DIM>
+void add_spherical_source_term(std::unique_ptr<Cell[]>& cells,
+                               const uint32_t& ncell) {
+  if constexpr (DIM == Coordinate::CARTESIAN_1D) {
+  } else if constexpr (DIM == Coordinate::SPHERICAL_1D) {
+#pragma omp parallel for
+    for (uint_fast32_t i = 1; i < ncell + 1; ++i) {
+      if (cells[i]._m > 0.) {
+        const double r = cells[i]._midpoint;
+        const double Sfac = 1. / r;
+        const double Vinv = 1. / cells[i]._V;
+        const double dt = cells[i]._dt;
+        const double Ui[3] = {cells[i]._m * Vinv, cells[i]._p * Vinv,
+                              cells[i]._E * Vinv};
+        double U[3];
+        fourth_order_runge_kutta(dt, Sfac, Ui, U);
+        cells[i]._m = U[0] * cells[i]._V;
+        cells[i]._p = U[1] * cells[i]._V;
+        cells[i]._E = U[2] * cells[i]._V;
+      }
+    }
   }
-#endif
+}
 
-#endif // SPHERICAL_HPP
+#endif  // SPHERICAL_HPP_

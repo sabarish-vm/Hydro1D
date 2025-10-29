@@ -23,65 +23,26 @@
  *
  * @author Bert Vandenbroucke (bv7@st-andrews.ac.uk)
  */
-#ifndef OPTIONNAMES_HPP
-#define OPTIONNAMES_HPP
+#ifndef OPTIONNAMES_HPP_
+#define OPTIONNAMES_HPP_
 
 // Possible types of boundary conditions.
 
 /*! @brief Open boundaries: inflow or outflow depending on the local flow
  *  velocity */
-#define BOUNDARIES_OPEN 1
-/*! @brief Reflective boundaries: outgoing flows are reflected inwards. */
-#define BOUNDARIES_REFLECTIVE 2
-/*! @brief Bondi boundaries: impose the Bondi solution on the boundaries. */
-#define BOUNDARIES_BONDI 3
-
+enum class Boundaries { OPEN, REFLECTIVE, BONDI };
 // Possible types of equation of state.
 
-/*! @brief Ideal gas (adiabatic) equation of state. */
-#define EOS_IDEAL 1
-/*! @brief Isothermal equation of state. */
-#define EOS_ISOTHERMAL 2
-/*! @brief Bondi equation of state: isothermal gas with ionisation pressure. */
-#define EOS_BONDI 3
+enum class EOS { IDEAL, ISOTHERMAL };
 
-// Possible types of external potentials.
+enum class Potential { NONE, POINT_MASS };
 
-/*! @brief No external potential (no gravity). */
-#define POTENTIAL_NONE 1
-/*! @brief Point mass external potential. */
-#define POTENTIAL_POINT_MASS 2
+enum class IC { UNIFORM, BONDI, READ };
 
-// Possible types of initial conditions.
+enum class Riemann { EXACT, HLLC };
 
-/*! @brief 1D spherical Sod shock setup. */
-#define IC_SOD 1
-/*! @brief 1D spherical Bondi accretion setup. */
-#define IC_BONDI 2
-/*! @brief Initial condition read in from a binary file. */
-#define IC_FILE 3
-/*! @brief Initial condition for the Woodward & Colella (1984) interacting
- *  blast waves test. */
-#define IC_BLASTWAVES 4
-/*! @brief Initial condition for the Starbench test. */
-#define IC_STARBENCH 5
+enum class Coordinate { CARTESIAN_1D, SPHERICAL_1D };
 
-// Possible types of Riemann solver
+enum class HeatConduction { ON, OFF };
 
-/*! @brief Exact Riemann solver. */
-#define RIEMANNSOLVER_TYPE_EXACT 1
-/*! @brief HLLC Riemann solver. */
-#define RIEMANNSOLVER_TYPE_HLLC 2
-
-// Possible types of dimensionality
-
-/*! @brief 1D solver. */
-#define DIMENSIONALITY_1D 1
-/*! @brief 3D spherically symmetric solver. */
-#define DIMENSIONALITY_3D 2
-
-// Heat conduction options
-#define HEAT_CONDUCTION_OFF 0
-#define HEAT_CONDUCTION_ON 1
-
-#endif // OPTIONNAMES_HPP
+#endif  // OPTIONNAMES_HPP_

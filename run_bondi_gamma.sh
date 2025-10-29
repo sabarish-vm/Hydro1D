@@ -5,19 +5,21 @@
 
 GAMMA="$1"
 GAMMA_NAME="${GAMMA/./p}"
-folder=build_gamma_${GAMMA_NAME}
+suffix="$2"
+folder=build_gamma_${GAMMA_NAME}_${suffix}
 nthread=8
 
 echo "GAMMA = ${GAMMA}"
 echo "GAMMA_NAME = ${GAMMA_NAME}"
+echo
 sed -i -E "s#\"gamma\":.*#\"gamma\":${GAMMA},#" ./write_test.py
 cmake_command=$(python write_test.py)
 
-echo "$cmake_command"
-
-mkdir $folder
+mkdir -p $folder
 cd $folder
 echo $cmake_command
+echo
+echo
 eval $cmake_command
 make -j $nthread
 OMP_NUM_THREADS=$nthread OMP_PROC_BIND=True ./HydroCodeSpherical1D 2>&1 |

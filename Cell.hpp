@@ -23,8 +23,8 @@
  *
  * @author Bert Vandenbroucke (bv7@st-andrews.ac.uk)
  */
-#ifndef CELL_HPP
-#define CELL_HPP
+#ifndef CELL_HPP_
+#define CELL_HPP_
 
 #include <cstdint>
 #include <iostream>
@@ -33,7 +33,7 @@
  * @brief Single cell of the grid.
  */
 class Cell {
-public:
+ public:
   // primitive (volume dependent) variables
 
   /*! @brief Density (in internal units of M L^-3). */
@@ -44,7 +44,6 @@ public:
   double _P;
   /*! @brief Sound speed (in internal units) */
   double _cs;
-
 
   /*! @brief Density gradient (in internal units of M L^-4). */
   double _grad_rho;
@@ -116,9 +115,6 @@ public:
    *  units of M L^-1 T^-2). */
   double _last_P;
 
-  /*! @brief Last neutral fraction value that was written to the log file. */
-  double _last_nfac;
-
   /**
    * @brief Print the contents of the cell for debugging purposes.
    */
@@ -145,7 +141,7 @@ public:
     std::cerr << "_last_rho: " << _last_rho << std::endl;
     std::cerr << "_last_u: " << _last_u << std::endl;
     std::cerr << "_last_P: " << _last_P << std::endl;
-  };
+  }
 };
 
-#endif // CELL_HPP
+#endif  //  CELL_HPP_

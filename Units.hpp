@@ -43,42 +43,42 @@
  *
  * @author Bert Vandenbroucke (bv7@st-andrews.ac.uk)
  */
-#ifndef UNITS_HPP
-#define UNITS_HPP
+#pragma once
+#include <cmath>
+
+#include "./Parameters.hpp"
+#include "./PhysicalConstants.hpp"
 
 // Internal units in SI units
-
 /*! @brief Time unit (in s). */
-#define UNIT_TIME_IN_SI                                                        \
-  std::sqrt(                                                                   \
-      G_INTERNAL *UNIT_LENGTH_IN_SI *UNIT_LENGTH_IN_SI *UNIT_LENGTH_IN_SI /    \
-      (UNIT_MASS_IN_SI * NEWTON_G_IN_SI))
+
+constexpr double G_INTERNAL =
+    UNIT_TIME_IN_SI * UNIT_TIME_IN_SI * UNIT_MASS_IN_SI * NEWTON_G_IN_SI /
+    (UNIT_LENGTH_IN_SI * UNIT_LENGTH_IN_SI * UNIT_LENGTH_IN_SI);
 
 /*! @brief Density unit (in kg m^-3). */
-#define UNIT_DENSITY_IN_SI                                                     \
-  (UNIT_MASS_IN_SI /                                                           \
-   (UNIT_LENGTH_IN_SI * UNIT_LENGTH_IN_SI * UNIT_LENGTH_IN_SI))
+constexpr double UNIT_DENSITY_IN_SI =
+    (UNIT_MASS_IN_SI /
+     (UNIT_LENGTH_IN_SI * UNIT_LENGTH_IN_SI * UNIT_LENGTH_IN_SI));
 
 /*! @brief Velocity unit (in m s^-1). */
-#define UNIT_VELOCITY_IN_SI (UNIT_LENGTH_IN_SI / UNIT_TIME_IN_SI)
+constexpr double UNIT_VELOCITY_IN_SI = (UNIT_LENGTH_IN_SI / UNIT_TIME_IN_SI);
 
 /*! @brief Pressure unit (in kg m^-1 s^-2). */
-#define UNIT_PRESSURE_IN_SI                                                    \
-  (UNIT_MASS_IN_SI / (UNIT_LENGTH_IN_SI * UNIT_TIME_IN_SI * UNIT_TIME_IN_SI))
+constexpr double UNIT_PRESSURE_IN_SI =
+    (UNIT_MASS_IN_SI / (UNIT_LENGTH_IN_SI * UNIT_TIME_IN_SI * UNIT_TIME_IN_SI));
 
 /*! @brief Energy unit (in kg m^2 s^-2). */
-#define UNIT_ENERGY_IN_SI                                                      \
-  (UNIT_MASS_IN_SI * UNIT_VELOCITY_IN_SI * UNIT_VELOCITY_IN_SI)
+constexpr double UNIT_ENERGY_IN_SI =
+    (UNIT_MASS_IN_SI * UNIT_VELOCITY_IN_SI * UNIT_VELOCITY_IN_SI);
 
 // Non SI unit conversions
 
 /*! @brief Mass unit (in Msol). */
-#define UNIT_MASS_IN_MSOL (UNIT_MASS_IN_SI / SOLAR_MASS_IN_SI)
+constexpr double UNIT_MASS_IN_MSOL = (UNIT_MASS_IN_SI / SOLAR_MASS_IN_SI);
 
 /*! @brief Time unit (in yr). */
-#define UNIT_TIME_IN_YR (UNIT_TIME_IN_SI / YEAR_IN_SI)
+constexpr double UNIT_TIME_IN_YR = (UNIT_TIME_IN_SI / YEAR_IN_SI);
 
 /*! @brief Lenght unit (in AU). */
-#define UNIT_LENGTH_IN_AU (UNIT_LENGTH_IN_SI / AU_IN_SI)
-
-#endif // UNITS_HPP
+constexpr double UNIT_LENGTH_IN_AU = (UNIT_LENGTH_IN_SI / AU_IN_SI);

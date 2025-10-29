@@ -23,32 +23,33 @@
  *
  * @author Bert Vandenbroucke (bv7@st-andrews.ac.uk)
  */
-#ifndef POTENTIAL_HPP
-#define POTENTIAL_HPP
+#ifndef POTENTIAL_HPP_
+#define POTENTIAL_HPP_
 
+#include <omp.h>
+
+#include <memory>
+
+#include "./Cell.hpp"
+#include "./DerivedParameters.hpp"
+#include "./OptionNames.hpp"
 /**
  * @brief Add the gravitational acceleration.
  */
-#if POTENTIAL == POTENTIAL_POINT_MASS
-#define do_gravity() /* add gravitational acceleration */                      \
-  _Pragma("omp parallel for") for (uint_fast32_t i = 1; i < ncell + 1; ++i) {  \
-    const double r = cells[i]._midpoint;                                       \
-    const double a = -G_INTERNAL * MASS_POINT_MASS / (r * r);                  \
-    const double m = cells[i]._V * cells[i]._rho;                              \
-    cells[i]._p += 0.5 * cells[i]._dt * a * m;                                 \
-    cells[i]._E += 0.5 * cells[i]._dt * a * m * cells[i]._u;                   \
-    /* we do not update the total energy, as we only run gravity simulations   \
-       with an isothermal eos, in which case the total energy is ignored by    \
-       the hydro scheme */                                                     \
-    /*const double r = cells[i]._midpoint;                                     \
-    const double a = -G_INTERNAL * MASS_POINT_MASS / (r * r);                  \
-    cells[i]._a = a;                                                           \
-    const double m = cells[i]._V * cells[i]._rho;                              \
-    cells[i]._p += 0.5 * DT * a * m; \*/                                       \
+template <Potential PT>
+void do_gravity(std::unique_ptr<Cell[]>& cells, const uint32_t& ncell) {
+  if constexpr (PT == Potential::POINT_MASS) {
+#pragma omp parallel for
+    for (uint_fast32_t i = 1; i < ncell + 1; ++i) {
+      const double r = cells[i]._midpoint;
+      const double a = -G_INTERNAL * MASS_POINT_MASS / (r * r);
+      const double m = cells[i]._V * cells[i]._rho;
+      cells[i]._p += 0.5 * cells[i]._dt * a * m;
+      cells[i]._E += 0.5 * cells[i]._dt * a * m * cells[i]._u;
+    }
+  } else if constexpr (PT == Potential::NONE) {
   }
-#elif POTENTIAL == POTENTIAL_NONE
-#define do_gravity()
-#endif
+}
 
 /**
  * @brief Do the gravitational half time step prediction for the given cell.
@@ -56,11 +57,12 @@
  * @param cell Cell.
  * @param half_dt Half the particle time step (in internal units of T).
  */
-#if POTENTIAL != POTENTIAL_NONE
-#define add_gravitational_prediction(cell, half_dt)                            \
-  cell._u += half_dt * cell._a;
-#else
-#define add_gravitational_prediction(cell, half_dt)
-#endif
+template <Potential PT>
+void add_gravitational_prediction(Cell cell, const double& half_dt) {
+  if constexpr (PT == Potential::NONE) {
+    cell._u += half_dt * cell._a;
+  } else {
+  }
+}
 
-#endif // POTENTIAL_HPP
+#endif  // POTENTIAL_HPP_

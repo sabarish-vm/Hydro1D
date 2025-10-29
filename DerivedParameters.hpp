@@ -23,51 +23,53 @@
  *
  * @author Bert Vandenbroucke (bv7@st-andrews.ac.uk)
  */
-#ifndef DERIVEDPARAMETERS_HPP
-#define DERIVEDPARAMETERS_HPP
+#ifndef DERIVEDPARAMETERS_HPP_
+#define DERIVEDPARAMETERS_HPP_
 
-#include "PhysicalConstants.hpp"
-#include "Units.hpp"
+#include "./PhysicalConstants.hpp"
+#include "./Units.hpp"
 
 /*! @brief Inner boundary radius (in internal units of L). */
-#define RMIN (RMIN_IN_AU * AU_IN_SI / UNIT_LENGTH_IN_SI)
+constexpr double RMIN = (RMIN_IN_AU * AU_IN_SI / UNIT_LENGTH_IN_SI);
 
 /*! @brief Outer boundary radius (in internal units of L). */
-#define RMAX (RMAX_IN_AU * AU_IN_SI / UNIT_LENGTH_IN_SI)
+constexpr double RMAX = (RMAX_IN_AU * AU_IN_SI / UNIT_LENGTH_IN_SI);
 
 /*! @brief Maximum simulation time (in internal units of T). */
-#define MAXTIME (MAXTIME_IN_YR * YEAR_IN_SI / UNIT_TIME_IN_SI)
+constexpr double MAXTIME = (MAXTIME_IN_YR * YEAR_IN_SI / UNIT_TIME_IN_SI);
 
 /*! @brief Mass of the central point mass (in internal units of M). */
-#define MASS_POINT_MASS                                                        \
-  (MASS_POINT_MASS_IN_MSOL * SOLAR_MASS_IN_SI / UNIT_MASS_IN_SI)
+constexpr double MASS_POINT_MASS =
+    (MASS_POINT_MASS_IN_MSOL * SOLAR_MASS_IN_SI / UNIT_MASS_IN_SI);
 
 /*! @brief Size of the simulation "box" (in internal units of L). */
-#define BOXSIZE (RMAX - RMIN)
+constexpr double BOXSIZE = (RMAX - RMIN);
 
 /*! @brief Size of a single "cell" of the simulation (in internal units of
  *  L). */
-#define CELLSIZE (BOXSIZE / ncell)
+constexpr double CELLSIZE = (BOXSIZE / NCELL);
 
 /*! @brief Half the size of a single "cell" of the simulation (in internal units
  *  of L). */
-#define HALF_CELLSIZE (0.5 * CELLSIZE)
+constexpr double HALF_CELLSIZE = (0.5 * CELLSIZE);
 
-#define SOUND_INFINITY \
-    (SOUND_INFINITY_IN_SI/UNIT_VELOCITY_IN_SI)
+constexpr double SOUND_INFINITY = (SOUND_INFINITY_IN_SI / UNIT_VELOCITY_IN_SI);
 
-#define VELOCITY_INFINITY \
-    (VELOCITY_INFINITY_IN_SI/UNIT_VELOCITY_IN_SI)
+constexpr double SOUND_INFINITY_2 = SOUND_INFINITY * SOUND_INFINITY;
 
-#define RHO_INFINITY \
-    RHO_INFINITY_IN_SI/UNIT_DENSITY_IN_SI
+constexpr double VELOCITY_INFINITY =
+    (VELOCITY_INFINITY_IN_SI / UNIT_VELOCITY_IN_SI);
 
-#define POLYTROPIC_CONSTANT \
-    (SOUND_INFINITY*SOUND_INFINITY / GAMMA / pow(RHO_INFINITY,GAMMA-1))
+constexpr double RHO_INFINITY = RHO_INFINITY_IN_SI / UNIT_DENSITY_IN_SI;
 
-#define POLYTROPIC_CONSTANT_IN_SI \
-    (SOUND_INFINITY_IN_SI*SOUND_INFINITY_IN_SI / GAMMA / pow(RHO_INFINITY_IN_SI,GAMMA-1))
+const double POLYTROPIC_CONSTANT =
+    (SOUND_INFINITY * SOUND_INFINITY / GAMMA / pow(RHO_INFINITY, GAMMA - 1));
 
-#define PRESSURE_INFINITY (POLYTROPIC_CONSTANT * pow(RHO_INFINITY,GAMMA))
+const double POLYTROPIC_CONSTANT_IN_SI =
+    (SOUND_INFINITY_IN_SI * SOUND_INFINITY_IN_SI / GAMMA /
+     pow(RHO_INFINITY_IN_SI, GAMMA - 1));
 
-#endif // DERIVEDPARAMETERS_HPP
+const double PRESSURE_INFINITY =
+    (POLYTROPIC_CONSTANT * pow(RHO_INFINITY, GAMMA));
+
+#endif  // DERIVEDPARAMETERS_HPP_

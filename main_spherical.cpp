@@ -24,18 +24,8 @@
  * @author Bert Vandenbroucke (bv7@st-andrews.ac.uk)
  */
 
-// project includes
-#include "Bondi.hpp"             // for EOS_BONDI, BOUNDARIES_BONDI, IC_BONDI
-#include "Cell.hpp"              // Cell class
-#include "HLLCRiemannSolver.hpp" // fast HLLC Riemann solver
-#include "Potential.hpp"         // external gravity
-#include "RiemannSolver.hpp"     // slow exact Riemann solver
-#include "SafeParameters.hpp"    // safe way to include Parameter.hpp
-#include "Spherical.hpp"         // spherical source terms
-#include "Timer.hpp"             // program timers
-#include "Units.hpp"             // unit information
-#include "LogFile.hpp"
-
+#include <omp.h>
+#include <sys/types.h>
 // standard libraries
 #include <algorithm>
 #include <cfloat>
@@ -44,11 +34,23 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
-#include <omp.h>
+#include <memory>
 #include <ostream>
 #include <sstream>
-#include <memory>
-
+#include <string>
+// project includes
+#include "./Bondi.hpp"  // for EOS_BONDI, BOUNDARIES_BONDI, IC_BONDI
+#include "./Cell.hpp"   // Cell class
+#include "./DerivedParameters.hpp"
+#include "./HLLCRiemannSolver.hpp"  // fast HLLC Riemann solver
+#include "./LogFile.hpp"
+#include "./OptionNames.hpp"
+#include "./Parameters.hpp"
+#include "./Potential.hpp"      // external gravity
+#include "./RiemannSolver.hpp"  // slow exact Riemann solver
+#include "./Spherical.hpp"      // spherical source terms
+#include "./Timer.hpp"          // program timers
+#include "./Units.hpp"          // unit information
 
 /*! @brief Activate this to disable fancy log output. */
 #define NO_LOGFILE
@@ -60,7 +62,7 @@
  */
 static std::string get_timestamp() {
   const std::time_t timestamp = std::time(nullptr);
-  const std::tm *time = std::localtime(&timestamp);
+  const std::tm* time = std::localtime(&timestamp);
   std::stringstream timestream;
   timestream << (time->tm_year + 1900) << ":";
   if (time->tm_mon < 9) {
@@ -93,23 +95,25 @@ static std::string get_timestamp() {
  * @param cells Cells to write.
  * @param ncell Number of cells.
  */
-void write_snapshot(uint_fast64_t istep, double time,const std::unique_ptr<Cell[]>& cells,                    const unsigned int ncell) {
+void write_snapshot(uint_fast64_t istep, double time,
+                    const std::unique_ptr<Cell[]>& cells,
+                    const unsigned int ncell) {
   std::stringstream filename;
   filename << "snapshot_";
   filename.fill('0');
   filename.width(4);
   filename << istep;
   filename << ".txt";
-  std::cout << "Writing snapshot " << filename.str() << std::endl;
+  if (istep % OUTPUT_SNAP_STATUS == 0) {
+    std::cout << "Writing snapshot " << filename.str() << std::endl;
+  }
   std::ofstream ofile(filename.str().c_str());
   ofile << "# time: " << time * UNIT_TIME_IN_SI << "\n";
   for (uint_fast32_t i = 1; i < ncell + 1; ++i) {
-    ofile << cells[i]._midpoint / RBONDI << "\t"
-          << cells[i]._rho * UNIT_DENSITY_IN_SI << "\t"
-          << cells[i]._u * UNIT_VELOCITY_IN_SI << "\t"
-          << cells[i]._P * UNIT_PRESSURE_IN_SI << "\t"
-          << cells[i]._cs * UNIT_VELOCITY_IN_SI
-          << "\n";
+    ofile << cells[i]._midpoint / RBONDI << "\t" << cells[i]._rho / RHO_INFINITY
+          << "\t" << cells[i]._u / SOUND_INFINITY << "\t"
+          << cells[i]._P / PRESSURE_INFINITY << "\t"
+          << cells[i]._cs / SOUND_INFINITY << "\n";
   }
   ofile.close();
 }
@@ -120,13 +124,14 @@ void write_snapshot(uint_fast64_t istep, double time,const std::unique_ptr<Cell[
  * @param cells Cells to write.
  * @param ncell Number of cells.
  */
-void write_binary_snapshot(const std::unique_ptr<Cell[]>& cells, const unsigned int ncell) {
+void write_binary_snapshot(const std::unique_ptr<Cell[]>& cells,
+                           const unsigned int ncell) {
   std::ofstream ofile("lastsnap.dat");
   for (uint_fast32_t i = 1; i < ncell + 1; ++i) {
-    ofile.write(reinterpret_cast<const char *>(&cells[i]._rho), sizeof(double));
-    ofile.write(reinterpret_cast<const char *>(&cells[i]._u), sizeof(double));
-    ofile.write(reinterpret_cast<const char *>(&cells[i]._P), sizeof(double));
-    ofile.write(reinterpret_cast<const char *>(&cells[i]._a), sizeof(double));
+    ofile.write(reinterpret_cast<const char*>(&cells[i]._rho), sizeof(double));
+    ofile.write(reinterpret_cast<const char*>(&cells[i]._u), sizeof(double));
+    ofile.write(reinterpret_cast<const char*>(&cells[i]._P), sizeof(double));
+    ofile.write(reinterpret_cast<const char*>(&cells[i]._a), sizeof(double));
   }
 }
 
@@ -149,7 +154,8 @@ enum LogEntry {
  * @param cell Cell to check.
  */
 // static inline bool changed(const int logentry, const Cell &cell) {
-//   // tolerance: If the relative difference of the value and the last outputted
+//   // tolerance: If the relative difference of the value and the last
+//   outputted
 //   // value is less than this value, no output is written
 //   // Should probably become a parameter at some point...
 //   static const double tol = 1.e-3;
@@ -201,14 +207,16 @@ enum LogEntry {
  * @param full_dump If set to True, dumps all cells irrespective of variable
  * changes.
  */
-static inline void write_logfile(LogFile &log, const std::unique_ptr<Cell[]>& cells,                                 const unsigned int ncell, const double time,
+static inline void write_logfile(LogFile& log,
+                                 const std::unique_ptr<Cell[]>& cells,
+                                 const unsigned int ncell, const double time,
                                  bool full_dump = false) {
 #ifndef NO_LOGFILE
   if (full_dump) {
     // full dump: write all particles
     for (uint_fast16_t i = 1; i < ncell + 1; ++i) {
       for (int logentry = 0; logentry < NUMBER_OF_LOGENTRIES; ++logentry) {
-        unsigned long previous_entry = cells[i]._last_entry;
+        uint64_t previous_entry = cells[i]._last_entry;
         cells[i]._last_entry = log.get_current_position();
         previous_entry = cells[i]._last_entry - previous_entry;
         log.write(previous_entry);
@@ -223,7 +231,7 @@ static inline void write_logfile(LogFile &log, const std::unique_ptr<Cell[]>& ce
     for (uint_fast16_t i = 1; i < ncell + 1; ++i) {
       for (int logentry = 0; logentry < NUMBER_OF_LOGENTRIES; ++logentry) {
         if (changed(logentry, cells[i])) {
-          unsigned long previous_entry = cells[i]._last_entry;
+          uint64_t previous_entry = cells[i]._last_entry;
           cells[i]._last_entry = log.get_current_position();
           previous_entry = cells[i]._last_entry - previous_entry;
           log.write(previous_entry);
@@ -235,7 +243,7 @@ static inline void write_logfile(LogFile &log, const std::unique_ptr<Cell[]>& ce
       }
     }
   }
-#endif // NO_LOGFILE
+#endif  // NO_LOGFILE
 }
 
 /**
@@ -275,7 +283,7 @@ static inline uint_fast64_t round_power2_down(uint_fast64_t x) {
  * @param cell Cell.
  * @return Shell energy.
  */
-static inline double get_shell_energy(const Cell &cell) {
+static inline double get_shell_energy(const Cell& cell) {
   const double rho = cell._rho;
   const double u = cell._u;
   const double P = cell._P;
@@ -284,6 +292,15 @@ static inline double get_shell_energy(const Cell &cell) {
   const double Vs = 4. * M_PI / 3. * (Ru * Ru * Ru - Rl * Rl * Rl);
   const double E = P * Vs / (GAMMA - 1.) + 0.5 * rho * Vs * u * u;
   return E;
+}
+
+template <Riemann RS>
+auto get_solver(const double& gamma) {
+  if constexpr (RS == Riemann::HLLC) {
+    return HLLCRiemannSolver{gamma};
+  } else if constexpr (RS == Riemann::EXACT) {
+    return RiemannSolver{gamma};
+  }
 }
 
 /**
@@ -308,8 +325,7 @@ static inline double get_shell_energy(const Cell &cell) {
  * @param argv Command line arguments.
  * @return Exit code: 0 on success.
  */
-int main(int argc, char **argv) {
-
+int main(int argc, char** argv) {
   // time the program
   Timer total_time;
   total_time.start();
@@ -317,63 +333,54 @@ int main(int argc, char **argv) {
   // initialize the optional parameters with their default values
   // default values are given in Parameters.hpp.in, DerivedParameters.hpp and
   // Bondi.hpp
-  unsigned int ncell = NCELL;
-  std::string ic_file_name(IC_FILE_NAME);
+  u_int32_t ncell = NCELL;
 
   // now overwrite with the actual command line parameters (if specified)
   if (argc > 1) {
     ncell = atoi(argv[1]);
   }
   if (argc > 2) {
-    ic_file_name = argv[2];
+    // ic_file_name = argv[2];
   }
 
-
   // output: most of this was useful at some point
-  std::cout << "UNIT_LENGTH_IN_SI: " << UNIT_LENGTH_IN_SI << std::endl;
-  std::cout << "UNIT_MASS_IN_SI: " << UNIT_MASS_IN_SI << std::endl;
-  std::cout << "UNIT_TIME_IN_SI: " << UNIT_TIME_IN_SI << std::endl;
-  std::cout << "UNIT_DENSITY_IN_SI: " << UNIT_DENSITY_IN_SI << std::endl;
-  std::cout << "UNIT_VELOCITY_IN_SI: " << UNIT_VELOCITY_IN_SI << std::endl;
-  std::cout << "UNIT_PRESSURE_IN_SI: " << UNIT_PRESSURE_IN_SI << std::endl;
+  std::cout << "\n\n";
+  std::cout << "UNIT_LENGTH_IN_SI: " << UNIT_LENGTH_IN_SI << '\n';
+  std::cout << "UNIT_MASS_IN_SI: " << UNIT_MASS_IN_SI << '\n';
+  std::cout << "UNIT_TIME_IN_SI: " << UNIT_TIME_IN_SI << '\n';
+  std::cout << "UNIT_DENSITY_IN_SI: " << UNIT_DENSITY_IN_SI << '\n';
+  std::cout << "UNIT_VELOCITY_IN_SI: " << UNIT_VELOCITY_IN_SI << '\n';
+  std::cout << "UNIT_PRESSURE_IN_SI: " << UNIT_PRESSURE_IN_SI << '\n';
 
-#if EOS == EOS_ISOTHERMAL || EOS == EOS_BONDI
-  std::cout << "GAMMA = " << GAMMA << std::endl;
-  std::cout << "Newton G: "
+  std::cout << "GAMMA = " << GAMMA << '\n';
+  std::cout << "Newton G: " << G_INTERNAL << " = "
             << G_INTERNAL *
                    (UNIT_LENGTH_IN_SI * UNIT_LENGTH_IN_SI * UNIT_LENGTH_IN_SI /
                     UNIT_MASS_IN_SI / UNIT_TIME_IN_SI / UNIT_TIME_IN_SI)
-            << " m^3 kg^-1 s^-2" << std::endl;
-  std::cout << "Neutral Bondi radius: " << RBONDI << " ("
-            << RBONDI * UNIT_LENGTH_IN_SI / AU_IN_SI << " AU)" << std::endl;
-  std::cout << "SOUND at Infinity: "
-            << SOUND_INFINITY << ", SI = " << SOUND_INFINITY_IN_SI
-            <<std::endl;
-  std::cout << "Density at Infinity: "
-            << RHO_INFINITY << ", SI = " << RHO_INFINITY_IN_SI
-            <<std::endl;
-  std::cout << "Polytropic Constant: "
-            << POLYTROPIC_CONSTANT << ", SI = " << POLYTROPIC_CONSTANT_IN_SI
-            <<std::endl;
+            << " [SI]" << '\n';
+  std::cout << "Bondi radius: " << RBONDI << " = " << RBONDI * UNIT_LENGTH_IN_SI
+            << " [SI]" << '\n';
+  std::cout << "SOUND speed at Infinity: " << SOUND_INFINITY << " = "
+            << SOUND_INFINITY_IN_SI << " [SI]" << '\n';
+  std::cout << "Density at Infinity: " << RHO_INFINITY << " = "
+            << RHO_INFINITY_IN_SI << " [SI]" << '\n';
+  std::cout << "Infall velocity at Infinity: " << VELOCITY_INFINITY << " = "
+            << VELOCITY_INFINITY_IN_SI << " [SI]" << '\n';
+  std::cout << "Polytropic Constant: " << POLYTROPIC_CONSTANT << " = "
+            << POLYTROPIC_CONSTANT_IN_SI << " [SI]" << '\n';
 
-#endif
-
-
-  std::cout << "Point mass: " << MASS_POINT_MASS * UNIT_MASS_IN_SI << " kg"
-            << std::endl;
-
-  std::cout << "Useful units:" << std::endl;
-  std::cout << "Point mass: " << MASS_POINT_MASS * UNIT_MASS_IN_MSOL << " Msol"
-            << std::endl;
+  std::cout << "Point mass: " << MASS_POINT_MASS << " = "
+            << MASS_POINT_MASS * UNIT_MASS_IN_SI << " [SI]" << '\n';
   std::cout << "Total simulation time: " << MAXTIME * UNIT_TIME_IN_YR << " yr"
-            << std::endl;
+            << '\n';
   std::cout << "Time in between snapshots: "
-            << (MAXTIME / NUMBER_OF_SNAPS) * UNIT_TIME_IN_YR << " yr "
-            << std::endl;
-  std::cout << "Minimum radius: " << RMIN * UNIT_LENGTH_IN_AU << " AU (" << RMIN
-            << ")" << std::endl;
-  std::cout << "Maximum radius: " << RMAX * UNIT_LENGTH_IN_AU << " AU (" << RMAX
-            << ")" << std::endl;
+            << (MAXTIME / NUMBER_OF_SNAPS) * UNIT_TIME_IN_YR << " yr " << '\n';
+  std::cout << "Minimum radius: " << RMIN << " = " << RMIN * UNIT_LENGTH_IN_AU
+            << " AU" << '\n';
+  std::cout << "Maximum radius: " << RMAX << " = " << RMAX * UNIT_LENGTH_IN_AU
+            << " AU" << '\n';
+
+  std::cout << "\n\n" << std::endl;
 
 // figure out how many threads we are using and tell the user about this
 #pragma omp parallel
@@ -388,7 +395,7 @@ int main(int argc, char **argv) {
   // initialize the time line used for time stepping
   // we use a classical power of 2 integer time line as e.g. Gadget2
   const double maxtime = MAXTIME;
-  const uint_fast64_t integer_maxtime = 0x8000000000000000; // 2^63
+  const uint_fast64_t integer_maxtime = 0x8000000000000000;  // 2^63
   const double time_conversion_factor = maxtime / integer_maxtime;
 
   // create the 1D spherical grid
@@ -416,7 +423,7 @@ int main(int argc, char **argv) {
   // this bit is handled by IC.hpp, and specific implementations in ICFile.hpp
   // (if configured with IC_FILE), Bondi.hpp (if configured with IC_BONDI), or
   // Sod.hpp (if configured with IC_SOD).
-    BondiFunc::initialize(cells, ncell);
+  BondiFunc::initialize(cells, ncell);
 
   // Courant factor for the CFL time step criterion
   // we use a very conservative value
@@ -454,9 +461,9 @@ int main(int argc, char **argv) {
 
     // time step criterion
     // const double cs =
-    //     std::sqrt(GAMMA * cells[i]._P / cells[i]._rho) + std::abs(cells[i]._u);
-    const double cs =
-        BondiFunc::cs(cells[i]._rho)  +std::abs(cells[i]._u);
+    //     std::sqrt(GAMMA * cells[i]._P / cells[i]._rho) +
+    //     std::abs(cells[i]._u);
+    const double cs = BondiFunc::cs(cells[i]._rho);  // +std::abs(cells[i]._u);
     const double hydro_dt = courant_factor * cells[i]._V / cs;
     const double dt = std::min(hydro_dt, 1e10);
 
@@ -500,16 +507,12 @@ int main(int argc, char **argv) {
     cells[i]._dt = cells[i]._integer_dt * time_conversion_factor;
   }
 
-// initialize the Riemann solver
-// we use a fast HLLC solver
-// replace "HLLCRiemannSolver" with "RiemannSolver" to use a slower, exact
-// solver
-#if RIEMANNSOLVER_TYPE == RIEMANNSOLVER_TYPE_HLLC
+  // initialize the Riemann solver
+  // we use a fast HLLC solver
+  // replace "HLLCRiemannSolver" with "RiemannSolver" to use a slower, exact
+  // solver
+  // auto solver = get_solver<RIEMANNSOLVER_TYPE>(static_cast<double>(GAMMA));
   HLLCRiemannSolver solver(GAMMA);
-#elif RIEMANNSOLVER_TYPE == RIEMANNSOLVER_TYPE_EXACT
-  RiemannSolver solver(GAMMA);
-#endif
-
   // initialize some variables used to guesstimate the remaing run time
   Timer progress_timer;
   Timer step_time;
@@ -525,15 +528,14 @@ int main(int argc, char **argv) {
             << std::endl;
   // main simulation loop: perform NSTEP steps
   while (current_integer_time < integer_maxtime) {
-
     // start the step timer
     step_time.start();
 
     // add the spherical source term. Handled by Spherical.hpp
-    add_spherical_source_term();
+    add_spherical_source_term<COORDINATE_SYSTEM>(cells, ncell);
 
     // do first gravity kick, handled by Potential.hpp
-    do_gravity();
+    do_gravity<POTENTIAL>(cells, ncell);
 
     // update the primitive variables based on the values of the conserved
     // variables and the current cell volume
@@ -547,8 +549,8 @@ int main(int argc, char **argv) {
       // the pressure update depends on the equation of state
       // this is handled in EOS.hpp (and Bondi.hpp for EOS_BONDI)
       // update_pressure(cells[i]);
-            BondiFunc::update_cs(cells[i]);
-            BondiFunc::update_pressure(cells[i]);
+      BondiFunc::update_cs(cells[i]);
+      BondiFunc::update_pressure(cells[i]);
 
       Etot += get_shell_energy(cells[i]);
 
@@ -596,12 +598,6 @@ int main(int argc, char **argv) {
       const double time_to_go = time_since_start * (100. - pct) / pct;
       std::cout << "\t\t\tEstimated time to go: " << time_to_go << " s"
                 << std::endl;
-#if EOS == EOS_BONDI
-      // we added this bit for the case where we want to add accreted material
-      // to the central mass (currently not used)
-      // std::cout << "\t\t\tCentral mass: " << central_mass << " ("
-      //           << (central_mass / MASS_POINT_MASS) << ")" << std::endl;
-#endif
       std::cout << "Total energy: " << Etot * UNIT_ENERGY_IN_SI << " J"
                 << std::endl;
       // reset guesstimate counters
@@ -617,15 +613,11 @@ int main(int argc, char **argv) {
       write_snapshot(isnap, current_integer_time * time_conversion_factor,
                      cells, ncell);
       ++isnap;
-      std::cout<<isnap<<std::endl;
-        if (isnap == 1000) {
-            cells[5].print();
-        }
     }
 
     // apply boundary conditions
     // handled by Boundaries.hpp (and Bondi.hpp for BOUNDARIES_BONDI)
-        BondiFunc::boundary_conditions_initialize(cells,ncell);
+    BondiFunc::boundary_conditions_initialize(cells, ncell);
 
 // compute slope limited gradients for the primitive variables in each cell
 #pragma omp parallel for
@@ -680,17 +672,17 @@ int main(int argc, char **argv) {
 
     // apply boundary conditions for the gradients
     // handled by Boundaries.hpp (and Bondi.hpp for BOUNDARIES_BONDI)
-        BondiFunc::boundary_conditions_gradients(cells,ncell);
+    BondiFunc::boundary_conditions_gradients(cells, ncell);
 
-#if HYDRO_ORDER == 1
+    if constexpr (HYDRO_ORDER == 1) {
 // reset all gradients to zero to disable the second order scheme
 #pragma omp parallel for
-    for (uint_fast32_t i = 0; i < ncell + 2; ++i) {
-      cells[i]._grad_rho = 0.;
-      cells[i]._grad_u = 0.;
-      cells[i]._grad_P = 0.;
+      for (uint_fast32_t i = 0; i < ncell + 2; ++i) {
+        cells[i]._grad_rho = 0.;
+        cells[i]._grad_u = 0.;
+        cells[i]._grad_P = 0.;
+      }
     }
-#endif
 
 // evolve all primitive variables forward in time for half a time step
 // using the Euler equations and the spatial gradients within the cells
@@ -717,7 +709,7 @@ int main(int argc, char **argv) {
       }
 
       // add gravity prediction. Handled by Potential.hpp.
-      add_gravitational_prediction(cells[i], half_dt);
+      add_gravitational_prediction<POTENTIAL>(cells[i], half_dt);
     }
 
     // compute the fluxes
@@ -758,18 +750,21 @@ int main(int argc, char **argv) {
         PR_dash = PR;
       }
 
-      double rhoFC = 0.5 * (rhoL + rhoR);
-      double tempL = cells[i - 1]._P / (cells[i - 1]._rho * BOLTZMANN_K_IN_SI);
-      double tempR = cells[i]._P / (cells[i]._rho * BOLTZMANN_K_IN_SI);
-      double dTdx = (tempR - tempL) / dmin;
+      // double rhoFC = 0.5 * (rhoL + rhoR);
+      // double tempL = cells[i - 1]._P / (cells[i - 1]._rho *
+      // BOLTZMANN_K_IN_SI); double tempR = cells[i]._P / (cells[i]._rho *
+      // BOLTZMANN_K_IN_SI); double dTdx = (tempR - tempL) / dmin;
+
       // solve the Riemann problem at the interface between the two cells
       double mflux, pflux, Eflux;
       solver.solve_for_flux(rhoL_dash, uL_dash, PL_dash, rhoR_dash, uR_dash,
                             PR_dash, mflux, pflux, Eflux);
+
       // Change fluxes to account for thermal conduction
       // std::cout<<"Eflux before = "<<Eflux<<std::endl;
-      Eflux -= THERMAL_CONDUCTIVITY * dTdx * rhoFC;
+      // Eflux -= THERMAL_CONDUCTIVITY * dTdx * rhoFC;
       // std::cout<<"Eflux after = "<<Eflux<<std::endl;
+
       // set the left and right fluxes
       // (unless the corresponding cell is a ghost)
       if (i < ncell + 1) {
@@ -786,7 +781,7 @@ int main(int argc, char **argv) {
       // call a special function for flux that crosses the inner outflow
       // boundary. This currently does not do anything.
       if (i == 1) {
-        //flux_into_inner_mask(dt * mflux);
+        // flux_into_inner_mask(dt * mflux);
       }
     }
 
@@ -800,11 +795,11 @@ int main(int argc, char **argv) {
 
     // add the spherical source term
     // handled by Spherical.hpp
-    add_spherical_source_term();
+    add_spherical_source_term<COORDINATE_SYSTEM>(cells, ncell);
 
     // do the second gravity kick
     // handled by Potential.hpp
-    do_gravity();
+    do_gravity<POTENTIAL>(cells, ncell);
 
     // stop the step timer, and update guesstimate counters
     step_time.stop();
