@@ -33,7 +33,7 @@
 #include <sys/types.h>
 
 #define BONDI_DENSITY (BONDI_DENSITY_IN_SI / UNIT_DENSITY_IN_SI)
-#define RBONDI (0.5 * G_INTERNAL * MASS_POINT_MASS / pow(SOUND_INFINITY, 2))
+#define RBONDI (G_INTERNAL * MASS_POINT_MASS / pow(SOUND_INFINITY, 2))
 
 namespace BondiFunc {
 inline double cs(const double &rho) {
