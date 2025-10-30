@@ -40,7 +40,8 @@
 #include <string>
 // project includes
 #include "./Bondi.hpp"  // for EOS_BONDI, BOUNDARIES_BONDI, IC_BONDI
-#include "./Cell.hpp"   // Cell class
+#include "./Boundaries.hpp"
+#include "./Cell.hpp"  // Cell class
 #include "./DerivedParameters.hpp"
 #include "./HLLCRiemannSolver.hpp"  // fast HLLC Riemann solver
 #include "./LogFile.hpp"
@@ -616,7 +617,7 @@ int main(int argc, char** argv) {
 
     // apply boundary conditions
     // handled by Boundaries.hpp (and Bondi.hpp for BOUNDARIES_BONDI)
-    BondiFunc::boundary_conditions_initialize(cells, ncell);
+    BCs::apply_bcs<BOUNDARY_TYPE>(cells, ncell);
 
 // compute slope limited gradients for the primitive variables in each cell
 #pragma omp parallel for
@@ -749,10 +750,10 @@ int main(int argc, char** argv) {
         PR_dash = PR;
       }
 
-      // double rhoFC = 0.5 * (rhoL + rhoR);
-      // double tempL = cells[i - 1]._P / (cells[i - 1]._rho *
-      // BOLTZMANN_K_IN_SI); double tempR = cells[i]._P / (cells[i]._rho *
-      // BOLTZMANN_K_IN_SI); double dTdx = (tempR - tempL) / dmin;
+      double rhoFC = 0.5 * (rhoL + rhoR);
+      double tempL = cells[i - 1]._P / (cells[i - 1]._rho * BOLTZMANN_K_IN_SI);
+      double tempR = cells[i]._P / (cells[i]._rho * BOLTZMANN_K_IN_SI);
+      double dTdx = (tempR - tempL) / dmin;
 
       // solve the Riemann problem at the interface between the two cells
       double mflux, pflux, Eflux;
@@ -760,9 +761,9 @@ int main(int argc, char** argv) {
                             PR_dash, mflux, pflux, Eflux);
 
       // Change fluxes to account for thermal conduction
-      // std::cout<<"Eflux before = "<<Eflux<<std::endl;
-      // Eflux -= THERMAL_CONDUCTIVITY * dTdx * rhoFC;
-      // std::cout<<"Eflux after = "<<Eflux<<std::endl;
+      // std::cout << "Eflux before = " << Eflux << std::endl;
+      Eflux -= THERMAL_CONDUCTIVITY * dTdx * rhoFC;
+      // std::cout << "Eflux after = " << Eflux << std::endl;
 
       // set the left and right fluxes
       // (unless the corresponding cell is a ghost)

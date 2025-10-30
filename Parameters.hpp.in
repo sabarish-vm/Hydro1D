@@ -97,4 +97,6 @@ constexpr double VELOCITY_INFINITY_IN_SI = @velocity_infinity_in_si@;
 
 constexpr Coordinate COORDINATE_SYSTEM = @coord_system@;
 
+constexpr BoundaryType BOUNDARY_TYPE = @boundary_type@;
+
 #endif // PARAMETERS_HPP

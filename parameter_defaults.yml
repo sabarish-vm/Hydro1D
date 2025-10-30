@@ -1,0 +1,33 @@
+rmin_in_au             : 10.0
+rmax_in_au             : 100.0
+ncell                  : 2700
+gamma                  : 1.001
+maxtime_in_yr          : 80.0
+number_of_snaps        : 4000
+## Gravitaional potential
+# Potential::<OPTION>
+# OPTIONs = POINT_MASS, NONE
+potential              : Potenial::POINT_MASS
+courant_factor         : 0.05
+riemannsolver_type     : Riemann::HLLC
+# Riemann::<OPTION>
+# OPTIONs = EXACT, HLLC
+coord_system           : Coordinate::SPHERICAL_1D
+# Coordinate::<OPTION>
+# OPTIONs = SPHERICAL_1D, CARTESIAN_1D
+hydro_order            : 2
+status_update_interval : 10.0
+boundary_type          : BoundaryType::OPEN
+# BoundaryType::<OPTION>
+# OPTIONs = OPEN, BONDI
+##
+mass_point_mass_in_msol: 18.0
+bondi_density_in_si    : 1.0e-16
+unit_mass_in_si        : 2.479e31
+unit_length_in_si      : 1.2e13
+unit_time_in_si        : 1.2e13
+sound_infinity_in_si   : 10000
+rho_infinity_in_si     : 1e-15
+velocity_infinity_in_si: 1
+##
+thermal_conductivity   : 0.0

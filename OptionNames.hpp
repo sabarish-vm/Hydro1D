@@ -30,8 +30,7 @@
 
 /*! @brief Open boundaries: inflow or outflow depending on the local flow
  *  velocity */
-enum class Boundaries { OPEN, REFLECTIVE, BONDI };
-// Possible types of equation of state.
+enum class BoundaryType { OPEN, REFLECTIVE, BONDI };
 
 enum class EOS { IDEAL, ISOTHERMAL };
 
