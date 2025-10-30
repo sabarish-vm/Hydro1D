@@ -1,89 +1,43 @@
-################################################################################
-# This file is part of HydroCodeSpherical1D
-# Copyright (C) 2017 Bert Vandenbroucke (bert.vandenbroucke@gmail.com)
-#
-# HydroCodeSpherical1D is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# HydroCodeSpherical1D is distributed in the hope that it will be useful,
-# but WITOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with HydroCodeSpherical1D. If not, see <http://www.gnu.org/licenses/>.
-################################################################################
-
-##
-# @file get_cmake_command.py
-#
-# @brief Script that generates the cmake command necessary to configure the code
-# with a specific configuration.
-#
-# @author Bert Vandenbroucke (bv7@st-andrews.ac.uk)
-##
-
-# default options: do not touch this!
-
-configuration_options = {
-    "rmin_in_au": 10.0,
-    "rmax_in_au": 100.0,
-    "ncell": 2700,
-    "gamma": 1.001,
-    "maxtime_in_yr": 80.0,
-    "number_of_snaps": 4000,
-    "potential": "Potenial::POINT_MASS",
-    "courant_factor": 0.05,
-    "riemannsolver_type": "Riemann::HLLC",
-    "coord_system": "Coordinate:SPHERICAL_1D",
-    "hydro_order": 2,
-    "status_update_interval": 10.0,
-    ##
-    "mass_point_mass_in_msol": 18.0,
-    "bondi_density_in_si": 1.0e-16,
-    "unit_mass_in_si": 2.479e31,
-    "unit_length_in_si": 1.2e13,
-    "unit_time_in_si": 1.2e13,
-    "sound_infinity_in_si": 10000,
-    "rho_infinity_in_si": 1e-15,
-    "velocity_infinity_in_si": 1,
-    ##
-    "thermal_conductivity": 0.0,
-}
+import os
+import sys
+import yaml
 
 
-##
-# @brief Generate the cmake command to configure the code with a specific
-# configuration.
-#
-# @param custom_options Configuration options that should replace their
-# respective default values.
-# @param folder Folder where the CMakeLists.txt file is located.
-# @return CMake configuration command.
-##
-def get_cmake_command(custom_options={}, folder=".."):
-    global configuration_options
+def get_cmake_command(param_file):
+    source_dir = os.path.realpath(os.path.dirname(__file__))
+    default_file = os.path.join(source_dir, "./parameter_defaults.yml")
+    with open(default_file, "r") as f:
+        configuration_options = yaml.safe_load(f)
+
+    with open(param_file, "r") as f:
+        custom_options = yaml.safe_load(f)
 
     command = "cmake -DCMAKE_BUILD_TYPE=Release"
-    for option in configuration_options:
-        if option in custom_options:
-            value = custom_options[option]
-            custom_options[option] = "read"
+    for option in configuration_options.keys():
+        if option in custom_options.keys():
+            value = custom_options.pop(option)
         else:
-            value = configuration_options[option]
+            raise Exception(f"Parameter missing {option}")
         command += " -D{0}={1}".format(option, value)
-    command += " " + folder
 
     # check that all custom options were actually used
-    for option in custom_options:
-        if not custom_options[option] == "read":
+    if len(custom_options.keys()) > 0:
+        for option in custom_options.keys():
             print("Unknown option:", option)
-            exit()
+        exit()
 
     return command
 
 
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python get_cmake_command.py <input_file.yml>")
+        sys.exit(1)
+
+    input_file = sys.argv[1]
+    cmd = get_cmake_command(input_file)
+    print(cmd)
+
+
 if __name__ == "__main__":
-    print(get_cmake_command())
+    main()
