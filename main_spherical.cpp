@@ -750,20 +750,23 @@ int main(int argc, char** argv) {
         PR_dash = PR;
       }
 
-      double rhoFC = 0.5 * (rhoL + rhoR);
-      double tempL = cells[i - 1]._P / (cells[i - 1]._rho * BOLTZMANN_K_IN_SI);
-      double tempR = cells[i]._P / (cells[i]._rho * BOLTZMANN_K_IN_SI);
-      double dTdx = (tempR - tempL) / dmin;
-
       // solve the Riemann problem at the interface between the two cells
       double mflux, pflux, Eflux;
       solver.solve_for_flux(rhoL_dash, uL_dash, PL_dash, rhoR_dash, uR_dash,
                             PR_dash, mflux, pflux, Eflux);
 
-      // Change fluxes to account for thermal conduction
-      // std::cout << "Eflux before = " << Eflux << std::endl;
-      Eflux -= THERMAL_CONDUCTIVITY * dTdx * rhoFC;
-      // std::cout << "Eflux after = " << Eflux << std::endl;
+      if constexpr (HEATCONDUCTION == HeatConduction::ON) {
+        double rhoFC = 0.5 * (rhoL + rhoR);
+        double tempL = cells[i - 1]._P /
+                    (cells[i - 1]._rho * BOLTZMANN_K_IN_SI);
+        double tempR = cells[i]._P / (cells[i]._rho * BOLTZMANN_K_IN_SI);
+        double dTdx = (tempR - tempL) / dmin;
+        // Change fluxes to account for thermal conduction
+        // std::cout << "Eflux before = " << Eflux << std::endl;
+        Eflux -= THERMAL_CONDUCTIVITY * dTdx * rhoFC;
+        // std::cout << "Eflux after = " << Eflux << std::endl;
+      }
+
 
       // set the left and right fluxes
       // (unless the corresponding cell is a ghost)

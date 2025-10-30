@@ -30,4 +30,5 @@ sound_infinity_in_si   : 10000
 rho_infinity_in_si     : 1e-15
 velocity_infinity_in_si: 1
 ##
+heat_conduction        : HeatConduction::OFF
 thermal_conductivity   : 0.0

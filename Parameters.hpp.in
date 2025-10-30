@@ -84,6 +84,8 @@ constexpr int HYDRO_ORDER = @hydro_order@;
 /*! @brief Time in between successive status outputs (in runtime s). */
 constexpr double STATUS_UPDATE_INTERVAL = @status_update_interval@;
 
+constexpr HeatConduction HEATCONDUCTION = @heat_conduction@;
+
 /*! @brief Thermal conductivity coefficient (set by configuration). */
 constexpr double THERMAL_CONDUCTIVITY = @thermal_conductivity@;
 
